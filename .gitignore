@@ -1,0 +1,23 @@
+# Build outputs
+/build*/
+/out/
+/bin/
+/compile_commands.json
+Makefile
+
+# Local editor files
+/.cache/
+/.vs/
+/.idea/
+CMakeSettings.json
+
+# Runtime data
+/settings/
+/saves/
+
+# Local environment and operating system files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
