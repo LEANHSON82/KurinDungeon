@@ -8,7 +8,7 @@ Battle::Battle(PlayerState &playerState, EnemyId enemyId)
     : player(playerState), enemy(CreateEnemy(enemyId))
 {
     deck.Init(player.masterDeck);
-    enemy.intent = ChooseIntent(enemy);
+    enemy.intent = ChooseIntent(enemy, turn);
     StartPlayerTurn();
     CheckResult();
 }
@@ -62,7 +62,7 @@ void Battle::EndPlayerTurn()
     }
 
     turn++;
-    enemy.intent = ChooseIntent(enemy);
+    enemy.intent = ChooseIntent(enemy, turn);
     StartPlayerTurn();
 }
 
@@ -74,6 +74,12 @@ void Battle::ExecuteEnemyTurn()
     {
     case IntentType::Attack:
         ApplyDamage(enemy.intent.value, player.hp, playerBlock);
+        break;
+    case IntentType::Defend:
+        enemy.block += enemy.intent.value;
+        break;
+    case IntentType::Buff:
+        enemy.strength += enemy.intent.value;
         break;
     }
 }

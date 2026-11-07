@@ -2,20 +2,38 @@
 #include "battleScreen.h"
 #include "cards/cardDatabase.h"
 #include "combat/enemyDatabase.h"
+#include "gameConfig.h"
 
-static const int left = 100;
 static const int fontSize = 25;
+static const int titleSize = 35;
 static const int lineHeight = 40;
+static const int padding = 30;
+static const int panelTop = 120;
+static const int panelWidth = 800;
+static const int panelHeight = 760;
+static const int playerX = 100;
+static const int enemyX = screenWidth - 100 - panelWidth;
 
 static int Count(const std::vector<CardId> &cards)
 {
     return static_cast<int>(cards.size());
 }
 
-static void DrawTextLine(const char *text, int &y, Color color)
+static void DrawTextLine(const char *text, int x, int &y, Color color)
 {
-    DrawText(text, left, y, fontSize, color);
+    DrawText(text, x, y, fontSize, color);
     y += lineHeight;
+}
+
+static void DrawCenteredText(const char *text, int y, int size, Color color)
+{
+    DrawText(text, (screenWidth - MeasureText(text, size)) / 2, y, size, color);
+}
+
+static int DrawSideTitle(int x, const char *title, Color color)
+{
+    DrawText(title, x + padding, panelTop + padding, titleSize, color);
+    return panelTop + padding + titleSize + lineHeight;
 }
 
 static const char *GetResultName(BattleResult result)
@@ -36,11 +54,13 @@ static const char *GetResultName(BattleResult result)
 static void LogBattle(const Battle &battle, const char *label)
 {
     const Deck &deck = battle.GetDeck();
+    const Enemy &enemy = battle.GetEnemy();
     TraceLog(LOG_INFO,
-             "%s | Turn %d | %s | Player HP %d Block %d | Energy %d | Enemy HP %d Block %d | Draw %d | Hand %d | Discard %d",
+             "%s | Turn %d | %s | Player HP %d Block %d | Energy %d | Enemy HP %d Block %d Strength %d | Intent %s %d | Draw %d | Hand %d | Discard %d",
              label, battle.GetTurn(), GetResultName(battle.GetResult()),
              battle.GetPlayer().hp, battle.GetPlayerBlock(), battle.GetEnergy(),
-             battle.GetEnemy().hp, battle.GetEnemy().block,
+             enemy.hp, enemy.block, enemy.strength,
+             GetIntentName(enemy.intent.type), enemy.intent.value,
              Count(deck.GetDrawPile()), Count(deck.GetHand()), Count(deck.GetDiscardPile()));
 }
 
@@ -77,45 +97,63 @@ ScreenAction UpdateBattleScreen(Battle &battle)
     return ScreenAction::None;
 }
 
-void DrawBattleScreen(const Battle &battle)
+static void DrawPlayerSide(const Battle &battle)
 {
     const PlayerState &player = battle.GetPlayer();
-    const Enemy &enemy = battle.GetEnemy();
-    const EnemyDefinition &definition = GetEnemyDefinition(enemy.id);
     const Deck &deck = battle.GetDeck();
+    const int x = playerX + padding;
 
-    DrawText("BATTLE", left, 50, 40, RED);
-
-    int y = 110;
-    DrawTextLine(TextFormat("Turn: %d", battle.GetTurn()), y, BLACK);
-    DrawTextLine(TextFormat("Player HP: %d / %d | Block: %d", player.hp, player.maxHp, battle.GetPlayerBlock()), y, BLACK);
-    DrawTextLine(TextFormat("Energy: %d", battle.GetEnergy()), y, BLACK);
-    DrawTextLine(TextFormat("%s HP: %d / %d | Block: %d", definition.name, enemy.hp, definition.maxHp, enemy.block), y, BLACK);
-    DrawTextLine(TextFormat("Intent: %s %d", GetIntentName(enemy.intent.type), enemy.intent.value), y, BLACK);
+    int y = DrawSideTitle(playerX, "PLAYER", DARKBLUE);
+    DrawTextLine(TextFormat("HP: %d / %d", player.hp, player.maxHp), x, y, BLACK);
+    DrawTextLine(TextFormat("Block: %d", battle.GetPlayerBlock()), x, y, BLACK);
+    DrawTextLine(TextFormat("Energy: %d / %d", battle.GetEnergy(), Battle::startingEnergy), x, y, BLACK);
     DrawTextLine(TextFormat("Draw: %d | Hand: %d | Discard: %d",
                             Count(deck.GetDrawPile()), Count(deck.GetHand()), Count(deck.GetDiscardPile())),
-                 y, BLACK);
+                 x, y, BLACK);
     y += lineHeight;
 
+    DrawTextLine("Hand:", x, y, DARKBLUE);
     const std::vector<CardId> &hand = deck.GetHand();
     for (int i = 0; i < Count(hand); i++)
     {
         const Card &card = GetCard(hand[i]);
         Color color = battle.CanPlayCard(i) ? DARKGREEN : GRAY;
-        DrawTextLine(TextFormat("%d: %s | Cost %d | %s", i + 1, card.name, card.cost, DescribeEffects(card).c_str()), y, color);
+        DrawTextLine(TextFormat("%d: %s | Cost %d | %s", i + 1, card.name, card.cost, DescribeEffects(card).c_str()),
+                     x, y, color);
     }
-    y += lineHeight;
+}
 
+static void DrawEnemySide(const Battle &battle)
+{
+    const Enemy &enemy = battle.GetEnemy();
+    const EnemyDefinition &definition = GetEnemyDefinition(enemy.id);
+    const int x = enemyX + padding;
+
+    int y = DrawSideTitle(enemyX, definition.name, MAROON);
+    DrawTextLine(TextFormat("HP: %d / %d", enemy.hp, definition.maxHp), x, y, BLACK);
+    DrawTextLine(TextFormat("Block: %d", enemy.block), x, y, BLACK);
+    DrawTextLine(TextFormat("Strength: %d", enemy.strength), x, y, BLACK);
+    y += lineHeight;
+    DrawTextLine(TextFormat("Intent: %s %d", GetIntentName(enemy.intent.type), enemy.intent.value), x, y, MAROON);
+}
+
+void DrawBattleScreen(const Battle &battle)
+{
+    DrawCenteredText(TextFormat("BATTLE - Turn %d", battle.GetTurn()), 40, 40, RED);
+    DrawPlayerSide(battle);
+    DrawEnemySide(battle);
+
+    const int y = panelTop + panelHeight + 50;
     switch (battle.GetResult())
     {
     case BattleResult::InProgress:
-        DrawTextLine("1-5: Play card | E: End turn", y, GRAY);
+        DrawCenteredText("1-5: Play card | E: End turn", y, fontSize, GRAY);
         break;
     case BattleResult::Won:
-        DrawTextLine("WON! Press ENTER to continue", y, DARKGREEN);
+        DrawCenteredText("WON! Press ENTER to continue", y, titleSize, DARKGREEN);
         break;
     case BattleResult::Lost:
-        DrawTextLine("LOST! Press ENTER to continue", y, RED);
+        DrawCenteredText("LOST! Press ENTER to continue", y, titleSize, RED);
         break;
     }
 }

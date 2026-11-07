@@ -15,7 +15,10 @@ const char *GetIntentName(IntentType type)
     {
     case IntentType::Attack:
         return "Attack";
+    case IntentType::Defend:
+        return "Defend";
+    case IntentType::Buff:
+        return "Buff";
     }
-
     return "Unknown";
 }
