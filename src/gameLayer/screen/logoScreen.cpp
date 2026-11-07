@@ -13,10 +13,10 @@ ScreenAction UpdateLogoScreen(float deltaTime)
     logoElapsed += deltaTime;
     if (logoElapsed >= 3.0f)
     {
-        return ScreenAction::logoFinished;
+        return ScreenAction::LogoFinished;
     }
 
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawLogoScreen()

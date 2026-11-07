@@ -5,9 +5,8 @@ enum class EnemyId
     Slime,
 };
 
-class EnemyDefinition
+struct EnemyDefinition
 {
-public:
     const char *name = "";
     int maxHp = 0;
     int damage = 0;

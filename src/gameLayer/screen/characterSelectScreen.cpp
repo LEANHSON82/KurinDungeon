@@ -5,10 +5,10 @@ ScreenAction UpdateCharacterSelectScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
-        return ScreenAction::characterConfirmed;
+        return ScreenAction::CharacterConfirmed;
     }
 
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawCharacterSelectScreen()

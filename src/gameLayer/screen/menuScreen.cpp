@@ -5,9 +5,9 @@ ScreenAction UpdateMenuScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
-        return ScreenAction::startPressed;
+        return ScreenAction::StartPressed;
     }
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawMenuScreen()

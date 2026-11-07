@@ -5,10 +5,10 @@ ScreenAction UpdateMapScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
-        return ScreenAction::combatChosen;
+        return ScreenAction::CombatChosen;
     }
 
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawMapScreen()

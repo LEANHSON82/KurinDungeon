@@ -1,34 +1,24 @@
 #pragma once
-#include "enemyDatabase.h"
+#include "enemyDefinition.h"
 
 enum class IntentType
 {
-    None,
     Attack,
-    Defend,
-    Buff,
 };
 
-class Intent
+struct Intent
 {
-public:
-    IntentType type = IntentType::None;
+    IntentType type = IntentType::Attack;
     int value = 0;
 };
 
-class Enemy
+struct Enemy
 {
-public:
-    EnemyId id;
-    int hp;
+    EnemyId id = EnemyId::Slime;
+    int hp = 0;
     int block = 0;
-    int strength = 0;
     Intent intent;
-
-    explicit Enemy(EnemyId enemyId)
-    {
-        id = enemyId;
-        const EnemyDefinition &definition = GetEnemyDefinition(enemyId);
-        hp = definition.maxHp;
-    }
 };
+
+Enemy CreateEnemy(EnemyId id);
+const char *GetIntentName(IntentType type);

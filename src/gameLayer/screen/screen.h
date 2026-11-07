@@ -2,16 +2,12 @@
 
 enum class GameScreen
 {
-    logo,
-    menu,
-    characterSelect,
-    map,
-    battle,
-    reward,
-    event,
-    lose,
-    win,
+    Logo,
+    Menu,
+    CharacterSelect,
+    Map,
+    Battle,
+    Reward,
+    Lose,
+    Win,
 };
-
-void UpdateScreen(float deltaTime);
-void DrawScreen();

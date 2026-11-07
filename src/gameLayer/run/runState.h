@@ -1,8 +1,7 @@
 #pragma once
 #include "player.h"
 
-class RunState
+struct RunState
 {
-public:
     PlayerState player;
 };

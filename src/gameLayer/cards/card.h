@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <vector>
 
 enum class CardId
 {
@@ -7,11 +9,23 @@ enum class CardId
     HeavyStrike,
 };
 
-class Card
+enum class EffectType
 {
-public:
+    Damage,
+    Block,
+};
+
+struct Effect
+{
+    EffectType type = EffectType::Damage;
+    int value = 0;
+};
+
+struct Card
+{
     const char *name = "";
     int cost = 0;
-    int damage = 0;
-    int block = 0;
+    std::vector<Effect> effects;
 };
+
+std::string DescribeEffects(const Card &card);

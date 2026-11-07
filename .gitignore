@@ -9,6 +9,7 @@ Makefile
 /.cache/
 /.vs/
 /.idea/
+/.vscode/
 CMakeSettings.json
 
 # Runtime data

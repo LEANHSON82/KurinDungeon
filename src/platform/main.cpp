@@ -1,21 +1,23 @@
 #include <raylib.h>
 #include "gameConfig.h"
-#include "screen/screen.h"
+#include "game.h"
 
 int main()
 {
     InitWindow(screenWidth, screenHeight, "Kurin");
     SetTargetFPS(60);
 
-    while (!WindowShouldClose())
     {
-        float deltaTime = GetFrameTime();
-        UpdateScreen(deltaTime);
+        Game game;
+        while (!WindowShouldClose())
+        {
+            game.Update(GetFrameTime());
 
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        DrawScreen();
-        EndDrawing();
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            game.Draw();
+            EndDrawing();
+        }
     }
 
     CloseWindow();

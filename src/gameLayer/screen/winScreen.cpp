@@ -5,9 +5,9 @@ ScreenAction UpdateWinScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
-        return ScreenAction::returnToMenu;
+        return ScreenAction::ReturnToMenu;
     }
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawWinScreen()

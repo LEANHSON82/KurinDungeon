@@ -1,6 +1,6 @@
 #pragma once
 #include "screenAction.h"
-#include "run/player.h"
+#include "combat/battle.h"
 
-ScreenAction UpdateBattleScreen();
-void DrawBattleScreen(const PlayerState &player);
+ScreenAction UpdateBattleScreen(Battle &battle);
+void DrawBattleScreen(const Battle &battle);

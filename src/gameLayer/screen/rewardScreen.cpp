@@ -4,10 +4,10 @@ ScreenAction UpdateRewardScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
-        return ScreenAction::rewardConfirmed;
+        return ScreenAction::RewardConfirmed;
     }
 
-    return ScreenAction::none;
+    return ScreenAction::None;
 }
 
 void DrawRewardScreen()
