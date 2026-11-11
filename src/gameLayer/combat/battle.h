@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "cards/deck.h"
 #include "enemy.h"
 #include "run/player.h"
@@ -16,7 +17,7 @@ public:
     static constexpr int startingEnergy = 3;
     static constexpr int handSize = 5;
 
-    Battle(PlayerState &playerState, EnemyId enemyId);
+    Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed);
 
     bool CanPlayCard(int handIndex) const;
     bool PlayCard(int handIndex);

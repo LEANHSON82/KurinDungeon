@@ -1,3 +1,5 @@
+#include <raylib.h>
+#include <random>
 #include "game.h"
 #include "screen/battleScreen.h"
 #include "screen/characterSelectScreen.h"
@@ -12,7 +14,7 @@ void Game::ChangeScreen(GameScreen nextScreen)
 {
     if (nextScreen == GameScreen::Logo)
     {
-        ResetLogoScreen();
+        logo = LogoScreenState{};
     }
     screen = nextScreen;
 }
@@ -21,15 +23,23 @@ void Game::StartRun()
 {
     battle.reset();
     run = RunState{};
+    run.seed = std::random_device{}();
+    run.rng.seed(run.seed);
+    TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
 }
 
-void Game::StartBattle()
+void Game::StartBattle(EnemyId enemyId)
 {
-    battle = std::make_unique<Battle>(run.player, EnemyId::Slime);
+    battle = std::make_unique<Battle>(run.player, enemyId, static_cast<std::uint32_t>(run.rng()));
 }
 
 void Game::UpdateBattle()
 {
+    if (!battle)
+    {
+        ChangeScreen(GameScreen::Map);
+        return;
+    }
     if (UpdateBattleScreen(*battle) != ScreenAction::LeaveBattle)
     {
         return;
@@ -52,7 +62,7 @@ void Game::Update(float deltaTime)
     switch (screen)
     {
     case GameScreen::Logo:
-        if (UpdateLogoScreen(deltaTime) == ScreenAction::LogoFinished)
+        if (UpdateLogoScreen(logo, deltaTime) == ScreenAction::LogoFinished)
         {
             ChangeScreen(GameScreen::Menu);
         }
@@ -73,7 +83,7 @@ void Game::Update(float deltaTime)
     case GameScreen::Map:
         if (UpdateMapScreen() == ScreenAction::CombatChosen)
         {
-            StartBattle();
+            StartBattle(EnemyId::Slime);
             ChangeScreen(GameScreen::Battle);
         }
         break;
@@ -118,7 +128,10 @@ void Game::Draw() const
         DrawMapScreen();
         break;
     case GameScreen::Battle:
-        DrawBattleScreen(*battle);
+        if (battle)
+        {
+            DrawBattleScreen(*battle);
+        }
         break;
     case GameScreen::Reward:
         DrawRewardScreen();

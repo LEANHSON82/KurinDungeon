@@ -1,8 +1,9 @@
 #include "deck.h"
 #include <algorithm>
 
-void Deck::Init(const std::vector<CardId> &cards)
+void Deck::Init(const std::vector<CardId> &cards, std::uint32_t seed)
 {
+    rng.seed(seed);
     drawPile = cards;
     hand.clear();
     discardPile.clear();

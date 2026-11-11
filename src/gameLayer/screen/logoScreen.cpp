@@ -1,17 +1,10 @@
 #include <raylib.h>
 #include "logoScreen.h"
 
-static float logoElapsed = 0.0f;
-
-void ResetLogoScreen()
+ScreenAction UpdateLogoScreen(LogoScreenState &state, float deltaTime)
 {
-    logoElapsed = 0.0f;
-}
-
-ScreenAction UpdateLogoScreen(float deltaTime)
-{
-    logoElapsed += deltaTime;
-    if (logoElapsed >= 3.0f)
+    state.elapsed += deltaTime;
+    if (state.elapsed >= 3.0f)
     {
         return ScreenAction::LogoFinished;
     }

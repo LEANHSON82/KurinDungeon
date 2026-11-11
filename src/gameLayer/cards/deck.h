@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <random>
 #include <vector>
 #include "card.h"
@@ -6,7 +7,7 @@
 class Deck
 {
 public:
-    void Init(const std::vector<CardId> &cards);
+    void Init(const std::vector<CardId> &cards, std::uint32_t seed);
     void DrawCards(int count);
     void DiscardPlayedCard(int handIndex);
     void DiscardHand();
@@ -22,5 +23,5 @@ private:
     std::vector<CardId> drawPile;
     std::vector<CardId> hand;
     std::vector<CardId> discardPile;
-    std::mt19937 rng{std::random_device{}()};
+    std::mt19937 rng;
 };

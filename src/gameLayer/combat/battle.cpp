@@ -4,10 +4,10 @@
 #include "damage.h"
 #include "enemyAi.h"
 
-Battle::Battle(PlayerState &playerState, EnemyId enemyId)
+Battle::Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed)
     : player(playerState), enemy(CreateEnemy(enemyId))
 {
-    deck.Init(player.masterDeck);
+    deck.Init(player.masterDeck, seed);
     enemy.intent = ChooseIntent(enemy, turn);
     StartPlayerTurn();
     CheckResult();
@@ -39,7 +39,7 @@ bool Battle::PlayCard(int handIndex)
 
     const Card &card = GetCard(deck.GetHand()[handIndex]);
     energy -= card.cost;
-    ApplyCardEffects(card, enemy, playerBlock);
+    ApplyCardEffects(card, {enemy, playerBlock});
     deck.DiscardPlayedCard(handIndex);
     CheckResult();
     return true;

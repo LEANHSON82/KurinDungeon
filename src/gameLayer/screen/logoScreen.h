@@ -1,5 +1,10 @@
 #pragma once
 #include "screenAction.h"
-void ResetLogoScreen();
-ScreenAction UpdateLogoScreen(float deltaTime);
+
+struct LogoScreenState
+{
+    float elapsed = 0.0f;
+};
+
+ScreenAction UpdateLogoScreen(LogoScreenState &state, float deltaTime);
 void DrawLogoScreen();

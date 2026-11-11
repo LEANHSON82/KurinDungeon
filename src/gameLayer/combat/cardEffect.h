@@ -2,4 +2,10 @@
 #include "cards/card.h"
 #include "enemy.h"
 
-void ApplyCardEffects(const Card &card, Enemy &enemy, int &playerBlock);
+struct EffectContext
+{
+    Enemy &enemy;
+    int &playerBlock;
+};
+
+void ApplyCardEffects(const Card &card, EffectContext context);

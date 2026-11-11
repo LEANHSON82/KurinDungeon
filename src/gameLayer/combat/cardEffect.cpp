@@ -1,23 +1,23 @@
 #include "cardEffect.h"
 #include "damage.h"
 
-static void ApplyEffect(const Effect &effect, Enemy &enemy, int &playerBlock)
+static void ApplyEffect(const Effect &effect, EffectContext context)
 {
     switch (effect.type)
     {
     case EffectType::Damage:
-        ApplyDamage(effect.value, enemy.hp, enemy.block);
+        ApplyDamage(effect.value, context.enemy.hp, context.enemy.block);
         break;
     case EffectType::Block:
-        playerBlock += effect.value;
+        context.playerBlock += effect.value;
         break;
     }
 }
 
-void ApplyCardEffects(const Card &card, Enemy &enemy, int &playerBlock)
+void ApplyCardEffects(const Card &card, EffectContext context)
 {
     for (const Effect &effect : card.effects)
     {
-        ApplyEffect(effect, enemy, playerBlock);
+        ApplyEffect(effect, context);
     }
 }
