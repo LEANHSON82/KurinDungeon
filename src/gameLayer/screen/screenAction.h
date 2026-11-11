@@ -1,4 +1,6 @@
 #pragma once
+
+// Screen events
 enum class ScreenAction
 {
     None,

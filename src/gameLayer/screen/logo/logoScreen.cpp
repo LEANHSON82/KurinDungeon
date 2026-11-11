@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include "logoScreen.h"
 
+// Update
 ScreenAction UpdateLogoScreen(LogoScreenState &state, float deltaTime)
 {
     state.elapsed += deltaTime;
@@ -12,6 +13,7 @@ ScreenAction UpdateLogoScreen(LogoScreenState &state, float deltaTime)
     return ScreenAction::None;
 }
 
+// Draw
 void DrawLogoScreen()
 {
     DrawText("KURIN", 20, 20, 40, RED);

@@ -4,9 +4,11 @@
 
 struct PlayerState
 {
+    // Health
     int maxHp = 80;
     int hp = 80;
 
+    // Master deck
     std::vector<CardId> masterDeck{
         CardId::Strike,
         CardId::Strike,

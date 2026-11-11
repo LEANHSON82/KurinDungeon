@@ -1,9 +1,10 @@
 #include "battle.h"
-#include "cardEffect.h"
+#include "combat/effects/cardEffect.h"
 #include "cards/cardDatabase.h"
 #include "damage.h"
-#include "enemyAi.h"
+#include "combat/enemies/enemyAi.h"
 
+// Setup
 Battle::Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed)
     : player(playerState), enemy(CreateEnemy(enemyId))
 {
@@ -13,6 +14,7 @@ Battle::Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed)
     CheckResult();
 }
 
+// Start turn
 void Battle::StartPlayerTurn()
 {
     energy = startingEnergy;
@@ -20,6 +22,7 @@ void Battle::StartPlayerTurn()
     deck.DrawCards(handSize);
 }
 
+// Validate card
 bool Battle::CanPlayCard(int handIndex) const
 {
     if (result != BattleResult::InProgress || !deck.IsValidHandIndex(handIndex))
@@ -30,6 +33,7 @@ bool Battle::CanPlayCard(int handIndex) const
     return energy >= GetCard(deck.GetHand()[handIndex]).cost;
 }
 
+// Play card
 bool Battle::PlayCard(int handIndex)
 {
     if (!CanPlayCard(handIndex))
@@ -38,13 +42,20 @@ bool Battle::PlayCard(int handIndex)
     }
 
     const Card &card = GetCard(deck.GetHand()[handIndex]);
+
+    // Pay energy
     energy -= card.cost;
+
+    // Apply effects
     ApplyCardEffects(card, {enemy, playerBlock});
+
+    // Discard
     deck.DiscardPlayedCard(handIndex);
     CheckResult();
     return true;
 }
 
+// End turn
 void Battle::EndPlayerTurn()
 {
     if (result != BattleResult::InProgress)
@@ -52,6 +63,7 @@ void Battle::EndPlayerTurn()
         return;
     }
 
+    // Enemy phase
     deck.DiscardHand();
     ExecuteEnemyTurn();
     CheckResult();
@@ -61,13 +73,16 @@ void Battle::EndPlayerTurn()
         return;
     }
 
+    // Next turn
     turn++;
     enemy.intent = ChooseIntent(enemy, turn);
     StartPlayerTurn();
 }
 
+// Execute intent
 void Battle::ExecuteEnemyTurn()
 {
+    // Expire block
     enemy.block = 0;
 
     switch (enemy.intent.type)
@@ -84,6 +99,7 @@ void Battle::ExecuteEnemyTurn()
     }
 }
 
+// Check result
 void Battle::CheckResult()
 {
     if (player.hp <= 0)

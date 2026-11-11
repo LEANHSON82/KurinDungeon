@@ -8,6 +8,7 @@ void ApplyDamage(int amount, int &hp, int &block)
         return;
     }
 
+    // Block then HP
     int blocked = std::min(block, amount);
     block -= blocked;
     hp = std::max(0, hp - (amount - blocked));

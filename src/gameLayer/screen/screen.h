@@ -1,5 +1,6 @@
 #pragma once
 
+// Current screen
 enum class GameScreen
 {
     Logo,

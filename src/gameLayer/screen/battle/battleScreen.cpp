@@ -1,9 +1,10 @@
 #include <raylib.h>
 #include "battleScreen.h"
 #include "cards/cardDatabase.h"
-#include "combat/enemyDatabase.h"
+#include "combat/enemies/enemyDatabase.h"
 #include "gameConfig.h"
 
+// Layout
 static const int fontSize = 25;
 static const int titleSize = 35;
 static const int lineHeight = 40;
@@ -14,6 +15,7 @@ static const int panelHeight = 760;
 static const int playerX = 100;
 static const int enemyX = screenWidth - 100 - panelWidth;
 
+// Draw helpers
 static int Count(const std::vector<CardId> &cards)
 {
     return static_cast<int>(cards.size());
@@ -36,6 +38,7 @@ static int DrawSideTitle(int x, const char *title, Color color)
     return panelTop + padding + titleSize + lineHeight;
 }
 
+// Result name
 static const char *GetResultName(BattleResult result)
 {
     switch (result)
@@ -51,6 +54,7 @@ static const char *GetResultName(BattleResult result)
     return "Unknown";
 }
 
+// Debug log
 static void LogBattle(const Battle &battle, const char *label)
 {
     const Deck &deck = battle.GetDeck();
@@ -64,8 +68,10 @@ static void LogBattle(const Battle &battle, const char *label)
              Count(deck.GetDrawPile()), Count(deck.GetHand()), Count(deck.GetDiscardPile()));
 }
 
+// Update
 ScreenAction UpdateBattleScreen(Battle &battle)
 {
+    // Leave finished battle
     if (battle.GetResult() != BattleResult::InProgress)
     {
         if (IsKeyPressed(KEY_ENTER))
@@ -75,6 +81,7 @@ ScreenAction UpdateBattleScreen(Battle &battle)
         return ScreenAction::None;
     }
 
+    // End turn
     if (IsKeyPressed(KEY_E))
     {
         LogBattle(battle, "Before EndTurn");
@@ -83,6 +90,7 @@ ScreenAction UpdateBattleScreen(Battle &battle)
         return ScreenAction::None;
     }
 
+    // Play card
     const int cardKeys[Battle::handSize]{KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE};
     for (int i = 0; i < Battle::handSize; i++)
     {
@@ -97,6 +105,7 @@ ScreenAction UpdateBattleScreen(Battle &battle)
     return ScreenAction::None;
 }
 
+// Player panel
 static void DrawPlayerSide(const Battle &battle)
 {
     const PlayerState &player = battle.GetPlayer();
@@ -123,6 +132,7 @@ static void DrawPlayerSide(const Battle &battle)
     }
 }
 
+// Enemy panel
 static void DrawEnemySide(const Battle &battle)
 {
     const Enemy &enemy = battle.GetEnemy();
@@ -137,6 +147,7 @@ static void DrawEnemySide(const Battle &battle)
     DrawTextLine(TextFormat("Intent: %s %d", GetIntentName(enemy.intent.type), enemy.intent.value), x, y, MAROON);
 }
 
+// Draw
 void DrawBattleScreen(const Battle &battle)
 {
     DrawCenteredText(TextFormat("BATTLE - Turn %d", battle.GetTurn()), 40, 40, RED);

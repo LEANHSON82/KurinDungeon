@@ -1,6 +1,7 @@
 #include "enemy.h"
 #include "enemyDatabase.h"
 
+// Spawn
 Enemy CreateEnemy(EnemyId id)
 {
     Enemy enemy;
@@ -9,6 +10,7 @@ Enemy CreateEnemy(EnemyId id)
     return enemy;
 }
 
+// Intent name
 const char *GetIntentName(IntentType type)
 {
     switch (type)

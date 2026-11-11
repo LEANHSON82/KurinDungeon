@@ -1,5 +1,8 @@
 #pragma once
-#include "screenAction.h"
+#include "screen/screenAction.h"
 
+// Update
 ScreenAction UpdateMenuScreen();
+
+// Draw
 void DrawMenuScreen();

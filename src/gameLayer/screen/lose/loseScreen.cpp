@@ -1,7 +1,8 @@
 #include <raylib.h>
-#include "winScreen.h"
+#include "loseScreen.h"
 
-ScreenAction UpdateWinScreen()
+// Update
+ScreenAction UpdateLoseScreen()
 {
     if (IsKeyPressed(KEY_ENTER))
     {
@@ -10,7 +11,8 @@ ScreenAction UpdateWinScreen()
     return ScreenAction::None;
 }
 
-void DrawWinScreen()
+// Draw
+void DrawLoseScreen()
 {
-    DrawText("VICTORY", 20, 20, 40, RED);
+    DrawText("GAME OVER", 20, 20, 40, RED);
 }

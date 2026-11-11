@@ -1,6 +1,7 @@
 #include "cardEffect.h"
-#include "damage.h"
+#include "combat/damage.h"
 
+// Single effect
 static void ApplyEffect(const Effect &effect, EffectContext context)
 {
     switch (effect.type)
@@ -14,6 +15,7 @@ static void ApplyEffect(const Effect &effect, EffectContext context)
     }
 }
 
+// All effects
 void ApplyCardEffects(const Card &card, EffectContext context)
 {
     for (const Effect &effect : card.effects)

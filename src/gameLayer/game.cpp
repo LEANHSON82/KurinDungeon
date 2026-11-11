@@ -1,15 +1,16 @@
 #include <raylib.h>
 #include <random>
 #include "game.h"
-#include "screen/battleScreen.h"
-#include "screen/characterSelectScreen.h"
-#include "screen/logoScreen.h"
-#include "screen/loseScreen.h"
-#include "screen/mapScreen.h"
-#include "screen/menuScreen.h"
-#include "screen/rewardScreen.h"
-#include "screen/winScreen.h"
+#include "screen/battle/battleScreen.h"
+#include "screen/characterSelect/characterSelectScreen.h"
+#include "screen/logo/logoScreen.h"
+#include "screen/lose/loseScreen.h"
+#include "screen/map/mapScreen.h"
+#include "screen/menu/menuScreen.h"
+#include "screen/reward/rewardScreen.h"
+#include "screen/win/winScreen.h"
 
+// Change screen
 void Game::ChangeScreen(GameScreen nextScreen)
 {
     if (nextScreen == GameScreen::Logo)
@@ -19,20 +20,26 @@ void Game::ChangeScreen(GameScreen nextScreen)
     screen = nextScreen;
 }
 
+// New run
 void Game::StartRun()
 {
+    // Reset run
     battle.reset();
     run = RunState{};
+
+    // Seed
     run.seed = std::random_device{}();
     run.rng.seed(run.seed);
     TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
 }
 
+// New battle
 void Game::StartBattle(EnemyId enemyId)
 {
     battle = std::make_unique<Battle>(run.player, enemyId, static_cast<std::uint32_t>(run.rng()));
 }
 
+// Battle result
 void Game::UpdateBattle()
 {
     if (!battle)
@@ -57,6 +64,8 @@ void Game::UpdateBattle()
         ChangeScreen(GameScreen::Lose);
     }
 }
+
+// Update
 void Game::Update(float deltaTime)
 {
     switch (screen)
@@ -111,6 +120,7 @@ void Game::Update(float deltaTime)
     }
 }
 
+// Draw
 void Game::Draw() const
 {
     switch (screen)
