@@ -21,3 +21,20 @@ const Card &GetCard(CardId id)
 
     throw std::out_of_range("Invalid CardId");
 }
+
+// Rewards
+std::vector<CardId> RollRewards(std::mt19937 &rng, int count)
+{
+    std::vector<CardId> pool{CardId::Strike, CardId::Defend, CardId::HeavyStrike};
+    std::vector<CardId> choices;
+
+    while (static_cast<int>(choices.size()) < count && !pool.empty())
+    {
+        std::uniform_int_distribution<int> pick(0, static_cast<int>(pool.size()) - 1);
+        int index = pick(rng);
+        choices.push_back(pool[index]);
+        pool.erase(pool.begin() + index);
+    }
+
+    return choices;
+}

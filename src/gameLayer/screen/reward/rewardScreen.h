@@ -1,8 +1,10 @@
 #pragma once
+#include <vector>
+#include "cards/card.h"
 #include "screen/screenAction.h"
 
 // Update
-ScreenAction UpdateRewardScreen();
+ScreenAction UpdateRewardScreen(const std::vector<CardId> &choices, int &chosenIndex);
 
 // Draw
-void DrawRewardScreen();
+void DrawRewardScreen(const std::vector<CardId> &choices);

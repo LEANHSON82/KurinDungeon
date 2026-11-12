@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <random>
 #include "game.h"
+#include "cards/cardDatabase.h"
 #include "screen/battle/battleScreen.h"
 #include "screen/characterSelect/characterSelectScreen.h"
 #include "screen/logo/logoScreen.h"
@@ -52,16 +53,63 @@ void Game::UpdateBattle()
         return;
     }
 
-    BattleResult result = battle->GetResult();
+    OnBattleOver(battle->GetResult());
+}
+
+// Enter room
+void Game::EnterRoom(int roomId)
+{
+    if (!run.map.CanVisit(run.currentRoom, roomId))
+    {
+        return;
+    }
+
+    const Room &room = run.map.GetRoom(roomId);
+    if (room.type != RoomType::Combat)
+    {
+        return;
+    }
+
+    run.currentRoom = roomId;
+    StartBattle(room.enemy);
+    ChangeScreen(GameScreen::Battle);
+}
+
+// Battle over
+void Game::OnBattleOver(BattleResult result)
+{
     battle.reset();
 
     if (result == BattleResult::Won)
     {
+        run.map.MarkCleared(run.currentRoom);
+        run.rewardChoices = RollRewards(run.rng, 3);
         ChangeScreen(GameScreen::Reward);
     }
     else
     {
         ChangeScreen(GameScreen::Lose);
+    }
+}
+
+// Take reward
+void Game::TakeReward(int choiceIndex)
+{
+    if (choiceIndex < 0 || choiceIndex >= static_cast<int>(run.rewardChoices.size()))
+    {
+        return;
+    }
+
+    run.player.masterDeck.push_back(run.rewardChoices[choiceIndex]);
+    run.rewardChoices.clear();
+
+    if (run.map.GetRoom(run.currentRoom).next.empty())
+    {
+        ChangeScreen(GameScreen::Win);
+    }
+    else
+    {
+        ChangeScreen(GameScreen::Map);
     }
 }
 
@@ -90,21 +138,26 @@ void Game::Update(float deltaTime)
         }
         break;
     case GameScreen::Map:
-        if (UpdateMapScreen() == ScreenAction::CombatChosen)
+    {
+        int chosenRoom = -1;
+        if (UpdateMapScreen(run.map, run.currentRoom, chosenRoom) == ScreenAction::RoomChosen)
         {
-            StartBattle(EnemyId::Slime);
-            ChangeScreen(GameScreen::Battle);
+            EnterRoom(chosenRoom);
         }
         break;
+    }
     case GameScreen::Battle:
         UpdateBattle();
         break;
     case GameScreen::Reward:
-        if (UpdateRewardScreen() == ScreenAction::RewardConfirmed)
+    {
+        int chosenIndex = -1;
+        if (UpdateRewardScreen(run.rewardChoices, chosenIndex) == ScreenAction::CardChosen)
         {
-            ChangeScreen(GameScreen::Map);
+            TakeReward(chosenIndex);
         }
         break;
+    }
     case GameScreen::Lose:
         if (UpdateLoseScreen() == ScreenAction::ReturnToMenu)
         {
@@ -135,7 +188,7 @@ void Game::Draw() const
         DrawCharacterSelectScreen();
         break;
     case GameScreen::Map:
-        DrawMapScreen();
+        DrawMapScreen(run.map, run.currentRoom);
         break;
     case GameScreen::Battle:
         if (battle)
@@ -144,7 +197,7 @@ void Game::Draw() const
         }
         break;
     case GameScreen::Reward:
-        DrawRewardScreen();
+        DrawRewardScreen(run.rewardChoices);
         break;
     case GameScreen::Lose:
         DrawLoseScreen();

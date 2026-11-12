@@ -18,6 +18,9 @@ private:
     void StartRun();
     void StartBattle(EnemyId enemyId);
     void UpdateBattle();
+    void EnterRoom(int roomId);
+    void OnBattleOver(BattleResult result);
+    void TakeReward(int choiceIndex);
 
     // State
     GameScreen screen = GameScreen::Logo;

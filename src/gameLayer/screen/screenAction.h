@@ -7,8 +7,8 @@ enum class ScreenAction
     LogoFinished,
     StartPressed,
     CharacterConfirmed,
-    CombatChosen,
+    RoomChosen,
     LeaveBattle,
-    RewardConfirmed,
+    CardChosen,
     ReturnToMenu,
 };
