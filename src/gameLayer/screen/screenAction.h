@@ -1,11 +1,11 @@
 #pragma once
 
-// Screen events
 enum class ScreenAction
 {
     None,
     LogoFinished,
     StartPressed,
+    QuitPressed,
     CharacterConfirmed,
     RoomChosen,
     LeaveBattle,

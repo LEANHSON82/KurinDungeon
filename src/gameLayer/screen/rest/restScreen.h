@@ -1,9 +1,8 @@
 #pragma once
+#include "assets/assets.h"
 #include "run/player.h"
 #include "screen/screenAction.h"
 
-// Update
 ScreenAction UpdateRestScreen();
 
-// Draw
-void DrawRestScreen(const PlayerState &player);
+void DrawRestScreen(const PlayerState &player, const Assets &assets);

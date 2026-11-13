@@ -4,12 +4,10 @@
 #include <vector>
 #include "combat/enemies/enemyDefinition.h"
 
-// Map size
 const int mapFloors = 7;
 const int mapColumns = 4;
 const int mapPaths = 3;
 
-// Room types
 enum class RoomType
 {
     Start,
@@ -18,7 +16,6 @@ enum class RoomType
     Boss,
 };
 
-// Room data
 struct Room
 {
     RoomType type = RoomType::Start;
@@ -34,21 +31,17 @@ struct Room
 class DungeonMap
 {
 public:
-    // Setup
     static DungeonMap Generate(std::uint32_t seed);
 
-    // Actions
     bool CanVisit(int fromRoom, int toRoom) const;
     void MarkCleared(int roomId);
 
-    // Read only
     bool IsValidRoom(int roomId) const;
     bool Validate() const;
     int GetRoomCount() const { return static_cast<int>(rooms.size()); }
     const Room &GetRoom(int roomId) const { return rooms[roomId]; }
 
 private:
-    // Build steps
     int AddRoom(RoomType type, int floor, int column);
     void AddEdge(int fromRoom, int toRoom);
     bool HasEdge(int fromRoom, int toRoom) const;

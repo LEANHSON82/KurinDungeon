@@ -4,7 +4,6 @@
 #include "damage.h"
 #include "combat/enemies/enemyAi.h"
 
-// Setup
 Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed)
     : player(playerState)
 {
@@ -19,7 +18,6 @@ Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, s
     CheckResult();
 }
 
-// Start turn
 void Battle::StartPlayerTurn()
 {
     energy = startingEnergy;
@@ -27,13 +25,11 @@ void Battle::StartPlayerTurn()
     deck.DrawCards(handSize);
 }
 
-// Enemy alive
 bool Battle::IsEnemyAlive(int index) const
 {
     return index >= 0 && index < static_cast<int>(enemies.size()) && enemies[index].hp > 0;
 }
 
-// Validate card
 bool Battle::CanPlayCard(int handIndex, int targetIndex) const
 {
     if (result != BattleResult::InProgress || !deck.IsValidHandIndex(handIndex))
@@ -50,23 +46,22 @@ bool Battle::CanPlayCard(int handIndex, int targetIndex) const
     return energy >= card.cost;
 }
 
-// Card targets
-std::vector<Enemy *> Battle::GetTargets(const Card &card, int targetIndex)
+std::vector<int> Battle::GetTargets(const Card &card, int targetIndex) const
 {
-    std::vector<Enemy *> targets;
+    std::vector<int> targets;
     switch (card.target)
     {
     case Target::Self:
         break;
     case Target::SingleEnemy:
-        targets.push_back(&enemies[targetIndex]);
+        targets.push_back(targetIndex);
         break;
     case Target::AllEnemies:
         for (int i = 0; i < static_cast<int>(enemies.size()); i++)
         {
             if (IsEnemyAlive(i))
             {
-                targets.push_back(&enemies[i]);
+                targets.push_back(i);
             }
         }
         break;
@@ -74,7 +69,6 @@ std::vector<Enemy *> Battle::GetTargets(const Card &card, int targetIndex)
     return targets;
 }
 
-// Play card
 bool Battle::PlayCard(int handIndex, int targetIndex)
 {
     if (!CanPlayCard(handIndex, targetIndex))
@@ -84,19 +78,16 @@ bool Battle::PlayCard(int handIndex, int targetIndex)
 
     const Card &card = GetCard(deck.GetHand()[handIndex]);
 
-    // Pay energy
     energy -= card.cost;
 
-    // Apply effects
-    ApplyCardEffects(card, {GetTargets(card, targetIndex), playerBlock});
+    EffectContext context{enemies, GetTargets(card, targetIndex), playerBlock, events};
+    ApplyCardEffects(card, context);
 
-    // Discard
     deck.DiscardPlayedCard(handIndex);
     CheckResult();
     return true;
 }
 
-// End turn
 void Battle::EndPlayerTurn()
 {
     if (result != BattleResult::InProgress)
@@ -104,7 +95,6 @@ void Battle::EndPlayerTurn()
         return;
     }
 
-    // Enemy phase
     deck.DiscardHand();
     ExecuteEnemyTurn();
 
@@ -113,13 +103,11 @@ void Battle::EndPlayerTurn()
         return;
     }
 
-    // Next turn
     turn++;
     ChooseEnemyIntents();
     StartPlayerTurn();
 }
 
-// Next intents
 void Battle::ChooseEnemyIntents()
 {
     for (Enemy &enemy : enemies)
@@ -131,20 +119,18 @@ void Battle::ChooseEnemyIntents()
     }
 }
 
-// Execute intents
 void Battle::ExecuteEnemyTurn()
 {
-    for (Enemy &enemy : enemies)
+    for (int i = 0; i < static_cast<int>(enemies.size()); i++)
     {
+        Enemy &enemy = enemies[i];
         if (enemy.hp <= 0)
         {
             continue;
         }
 
-        // Expire block
         enemy.block = 0;
 
-        // Boss action used
         if (enemy.intent.bossAction)
         {
             enemy.usedBossAction = true;
@@ -153,17 +139,26 @@ void Battle::ExecuteEnemyTurn()
         switch (enemy.intent.type)
         {
         case IntentType::Attack:
+        {
+            int hpBefore = player.hp;
             ApplyDamage(enemy.intent.value, player.hp, playerBlock);
+            AddEvent(BattleEventType::Damage, i, playerActor, hpBefore - player.hp);
+            if (player.hp == 0)
+            {
+                AddEvent(BattleEventType::Death, i, playerActor, 0);
+            }
             break;
+        }
         case IntentType::Defend:
             enemy.block += enemy.intent.value;
+            AddEvent(BattleEventType::Block, i, i, enemy.intent.value);
             break;
         case IntentType::Buff:
             enemy.strength += enemy.intent.value;
+            AddEvent(BattleEventType::Buff, i, i, enemy.intent.value);
             break;
         }
 
-        // Stop when player dies
         CheckResult();
         if (result != BattleResult::InProgress)
         {
@@ -172,7 +167,6 @@ void Battle::ExecuteEnemyTurn()
     }
 }
 
-// Check result
 void Battle::CheckResult()
 {
     if (player.hp <= 0)
@@ -189,4 +183,16 @@ void Battle::CheckResult()
         }
     }
     result = BattleResult::Won;
+}
+
+void Battle::AddEvent(BattleEventType type, int source, int target, int value)
+{
+    events.push_back({type, source, target, value});
+}
+
+std::vector<BattleEvent> Battle::TakeEvents()
+{
+    std::vector<BattleEvent> taken;
+    taken.swap(events);
+    return taken;
 }

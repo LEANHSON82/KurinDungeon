@@ -1,8 +1,7 @@
 #pragma once
+#include "assets/assets.h"
 #include "screen/screenAction.h"
 
-// Update
 ScreenAction UpdateCharacterSelectScreen();
 
-// Draw
-void DrawCharacterSelectScreen();
+void DrawCharacterSelectScreen(const Assets &assets);

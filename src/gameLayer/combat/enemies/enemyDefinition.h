@@ -1,6 +1,5 @@
 #pragma once
 
-// Enemy IDs
 enum class EnemyId
 {
     Slime,
@@ -8,7 +7,6 @@ enum class EnemyId
     Warden,
 };
 
-// Base stats
 struct EnemyDefinition
 {
     const char *name = "";

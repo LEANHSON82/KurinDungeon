@@ -1,7 +1,6 @@
 #pragma once
 #include "enemyDefinition.h"
 
-// Intent types
 enum class IntentType
 {
     Attack,
@@ -9,7 +8,6 @@ enum class IntentType
     Buff,
 };
 
-// Announced action
 struct Intent
 {
     IntentType type = IntentType::Attack;
@@ -17,7 +15,6 @@ struct Intent
     bool bossAction = false;
 };
 
-// Battle state
 struct Enemy
 {
     EnemyId id = EnemyId::Slime;
@@ -28,6 +25,5 @@ struct Enemy
     Intent intent;
 };
 
-// Helpers
 Enemy CreateEnemy(EnemyId id);
 const char *GetIntentName(IntentType type);

@@ -1,8 +1,7 @@
 #pragma once
+#include "assets/assets.h"
 #include "screen/screenAction.h"
 
-// Update
 ScreenAction UpdateEndScreen();
 
-// Draw
-void DrawEndScreen(bool won);
+void DrawEndScreen(bool won, const Assets &assets);

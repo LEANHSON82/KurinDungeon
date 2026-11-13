@@ -1,14 +1,15 @@
 #pragma once
 #include <vector>
 #include "cards/card.h"
+#include "combat/battleEvent.h"
 #include "combat/enemies/enemy.h"
 
-// Targets
 struct EffectContext
 {
-    std::vector<Enemy *> enemies;
+    std::vector<Enemy> &enemies;
+    std::vector<int> targets;
     int &playerBlock;
+    std::vector<BattleEvent> &events;
 };
 
-// Apply effects
-void ApplyCardEffects(const Card &card, const EffectContext &context);
+void ApplyCardEffects(const Card &card, EffectContext &context);

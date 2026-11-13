@@ -3,13 +3,11 @@
 
 const Card &GetCard(CardId id)
 {
-    // Definitions
     static const Card strike{"Strike", 1, Target::SingleEnemy, {{EffectType::Damage, 6}}};
     static const Card defend{"Defend", 1, Target::Self, {{EffectType::Block, 5}}};
     static const Card heavyStrike{"Heavy Strike", 2, Target::SingleEnemy, {{EffectType::Damage, 12}}};
     static const Card cleave{"Cleave", 1, Target::AllEnemies, {{EffectType::Damage, 8}}};
 
-    // Lookup
     switch (id)
     {
     case CardId::Strike:
@@ -25,7 +23,6 @@ const Card &GetCard(CardId id)
     throw std::out_of_range("Invalid CardId");
 }
 
-// Rewards
 std::vector<CardId> RollRewards(std::mt19937 &rng, int count)
 {
     std::vector<CardId> pool{CardId::Strike, CardId::Defend, CardId::HeavyStrike, CardId::Cleave};

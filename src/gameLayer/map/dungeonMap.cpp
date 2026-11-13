@@ -2,20 +2,16 @@
 #include <queue>
 #include "dungeonMap.h"
 
-// Generate map
 DungeonMap DungeonMap::Generate(std::uint32_t seed)
 {
     std::mt19937 rng(seed);
     DungeonMap map;
 
-    // Start room
     int startId = map.AddRoom(RoomType::Start, -1, 0);
     map.rooms[startId].cleared = true;
 
-    // Empty grid
     std::vector<std::vector<int>> grid(mapFloors, std::vector<int>(mapColumns, -1));
 
-    // Paths
     std::uniform_int_distribution<int> pickColumn(0, mapColumns - 1);
     int firstColumn = -1;
     for (int path = 0; path < mapPaths; path++)
@@ -48,7 +44,6 @@ DungeonMap DungeonMap::Generate(std::uint32_t seed)
         }
     }
 
-    // Boss room
     int bossId = map.AddRoom(RoomType::Boss, mapFloors, 0);
     for (int column = 0; column < mapColumns; column++)
     {
@@ -63,7 +58,6 @@ DungeonMap DungeonMap::Generate(std::uint32_t seed)
     return map;
 }
 
-// Add room
 int DungeonMap::AddRoom(RoomType type, int floor, int column)
 {
     Room room;
@@ -74,7 +68,6 @@ int DungeonMap::AddRoom(RoomType type, int floor, int column)
     return static_cast<int>(rooms.size()) - 1;
 }
 
-// Add edge once
 void DungeonMap::AddEdge(int fromRoom, int toRoom)
 {
     if (!HasEdge(fromRoom, toRoom))
@@ -83,7 +76,6 @@ void DungeonMap::AddEdge(int fromRoom, int toRoom)
     }
 }
 
-// Check edge
 bool DungeonMap::HasEdge(int fromRoom, int toRoom) const
 {
     if (fromRoom == -1 || toRoom == -1)
@@ -95,7 +87,6 @@ bool DungeonMap::HasEdge(int fromRoom, int toRoom) const
     return std::find(next.begin(), next.end(), toRoom) != next.end();
 }
 
-// Next column without crossing
 int DungeonMap::PickNextColumn(const std::vector<std::vector<int>> &grid, std::mt19937 &rng, int floor, int column) const
 {
     std::vector<int> choices;
@@ -106,7 +97,6 @@ int DungeonMap::PickNextColumn(const std::vector<std::vector<int>> &grid, std::m
             continue;
         }
 
-        // Diagonal edges must not cross
         if (nextColumn != column)
         {
             int sideRoom = grid[floor][nextColumn];
@@ -124,7 +114,6 @@ int DungeonMap::PickNextColumn(const std::vector<std::vector<int>> &grid, std::m
     return choices[pick(rng)];
 }
 
-// Parent is rest
 bool DungeonMap::HasRestParent(int roomId) const
 {
     for (int id = 0; id < GetRoomCount(); id++)
@@ -137,7 +126,6 @@ bool DungeonMap::HasRestParent(int roomId) const
     return false;
 }
 
-// Enemy group by floor
 static std::vector<EnemyId> PickEnemyGroup(std::mt19937 &rng, int floor)
 {
     if (floor < mapFloors / 2)
@@ -153,7 +141,6 @@ static std::vector<EnemyId> PickEnemyGroup(std::mt19937 &rng, int floor)
     return {EnemyId::Guardian};
 }
 
-// Room types and enemies
 void DungeonMap::AssignRooms(std::mt19937 &rng)
 {
     std::uniform_int_distribution<int> pickType(0, 3);
@@ -167,13 +154,11 @@ void DungeonMap::AssignRooms(std::mt19937 &rng)
                 continue;
             }
 
-            // Rest rules
             bool lastFloor = floor == mapFloors - 1;
             bool canRest = floor >= 2 && floor < mapFloors - 2 && !HasRestParent(id);
             bool rolledRest = canRest && pickType(rng) == 0;
             room.type = lastFloor || rolledRest ? RoomType::Rest : RoomType::Combat;
 
-            // Enemy group
             if (room.type == RoomType::Combat)
             {
                 room.enemies = PickEnemyGroup(rng, floor);
@@ -184,13 +169,11 @@ void DungeonMap::AssignRooms(std::mt19937 &rng)
     rooms.back().enemies = {EnemyId::Warden};
 }
 
-// Graph check
 bool DungeonMap::Validate() const
 {
     int roomCount = GetRoomCount();
     int bossId = roomCount - 1;
 
-    // Incoming and outgoing edges
     std::vector<int> incoming(roomCount, 0);
     for (int id = 0; id < roomCount; id++)
     {
@@ -211,7 +194,6 @@ bool DungeonMap::Validate() const
         }
     }
 
-    // Crossing edges
     for (const Room &a : rooms)
     {
         for (int aNext : a.next)
@@ -234,7 +216,6 @@ bool DungeonMap::Validate() const
         }
     }
 
-    // BFS from start
     std::vector<bool> visited(roomCount, false);
     std::queue<int> queue;
     queue.push(0);
@@ -256,13 +237,11 @@ bool DungeonMap::Validate() const
     return visited[bossId];
 }
 
-// Validate room
 bool DungeonMap::IsValidRoom(int roomId) const
 {
     return roomId >= 0 && roomId < GetRoomCount();
 }
 
-// Movement rule
 bool DungeonMap::CanVisit(int fromRoom, int toRoom) const
 {
     if (!IsValidRoom(fromRoom) || !IsValidRoom(toRoom))
@@ -277,7 +256,6 @@ bool DungeonMap::CanVisit(int fromRoom, int toRoom) const
     return HasEdge(fromRoom, toRoom);
 }
 
-// Clear room
 void DungeonMap::MarkCleared(int roomId)
 {
     if (IsValidRoom(roomId))

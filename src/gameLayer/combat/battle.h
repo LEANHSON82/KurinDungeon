@@ -2,10 +2,10 @@
 #include <cstdint>
 #include <vector>
 #include "cards/deck.h"
+#include "combat/battleEvent.h"
 #include "combat/enemies/enemy.h"
 #include "run/player.h"
 
-// Result
 enum class BattleResult
 {
     InProgress,
@@ -16,18 +16,15 @@ enum class BattleResult
 class Battle
 {
 public:
-    // Rules
     static constexpr int startingEnergy = 3;
     static constexpr int handSize = 5;
 
     Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed);
 
-    // Actions
     bool CanPlayCard(int handIndex, int targetIndex) const;
     bool PlayCard(int handIndex, int targetIndex);
     void EndPlayerTurn();
 
-    // Read only
     const PlayerState &GetPlayer() const { return player; }
     const std::vector<Enemy> &GetEnemies() const { return enemies; }
     bool IsEnemyAlive(int index) const;
@@ -37,22 +34,23 @@ public:
     int GetTurn() const { return turn; }
     BattleResult GetResult() const { return result; }
 
+    std::vector<BattleEvent> TakeEvents();
+
 private:
-    // Turn flow
     void StartPlayerTurn();
     void ExecuteEnemyTurn();
     void CheckResult();
     void ChooseEnemyIntents();
-    std::vector<Enemy *> GetTargets(const Card &card, int targetIndex);
+    std::vector<int> GetTargets(const Card &card, int targetIndex) const;
+    void AddEvent(BattleEventType type, int source, int target, int value);
 
-    // Borrowed player
     PlayerState &player;
 
-    // Battle state
     std::vector<Enemy> enemies;
     Deck deck;
     int energy = 0;
     int playerBlock = 0;
     int turn = 1;
     BattleResult result = BattleResult::InProgress;
+    std::vector<BattleEvent> events;
 };

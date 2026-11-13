@@ -1,14 +1,12 @@
 #pragma once
+#include "assets/assets.h"
 #include "screen/screenAction.h"
 
-// Timer
 struct LogoScreenState
 {
     float elapsed = 0.0f;
 };
 
-// Update
 ScreenAction UpdateLogoScreen(LogoScreenState &state, float deltaTime);
 
-// Draw
-void DrawLogoScreen();
+void DrawLogoScreen(const LogoScreenState &state, const Assets &assets);

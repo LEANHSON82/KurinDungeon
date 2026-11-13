@@ -12,7 +12,16 @@
 #include "screen/rest/restScreen.h"
 #include "screen/reward/rewardScreen.h"
 
-// Change screen
+Game::Game()
+{
+    LoadAssets(assets);
+}
+
+Game::~Game()
+{
+    UnloadAssets(assets);
+}
+
 void Game::ChangeScreen(GameScreen nextScreen)
 {
     if (nextScreen == GameScreen::Logo)
@@ -22,19 +31,15 @@ void Game::ChangeScreen(GameScreen nextScreen)
     screen = nextScreen;
 }
 
-// New run
 void Game::StartRun()
 {
-    // Reset run
     battle.reset();
     run = RunState{};
 
-    // Seed
     run.seed = std::random_device{}();
     run.rng.seed(run.seed);
     TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
 
-    // Map
     run.map = DungeonMap::Generate(run.seed);
     if (!run.map.Validate())
     {
@@ -42,22 +47,21 @@ void Game::StartRun()
     }
 }
 
-// New battle
 void Game::StartBattle(const std::vector<EnemyId> &enemyIds)
 {
     battle = std::make_unique<Battle>(run.player, enemyIds, static_cast<std::uint32_t>(run.rng()));
     battleView = BattleScreenState{};
+    battleView.enemies.resize(enemyIds.size());
 }
 
-// Battle result
-void Game::UpdateBattle()
+void Game::UpdateBattle(float deltaTime)
 {
     if (!battle)
     {
         ChangeScreen(GameScreen::Map);
         return;
     }
-    if (UpdateBattleScreen(battleView, *battle) != ScreenAction::LeaveBattle)
+    if (UpdateBattleScreen(battleView, *battle, assets, deltaTime) != ScreenAction::LeaveBattle)
     {
         return;
     }
@@ -65,7 +69,6 @@ void Game::UpdateBattle()
     OnBattleOver(battle->GetResult());
 }
 
-// Enter room
 void Game::EnterRoom(int roomId)
 {
     if (!run.map.CanVisit(run.currentRoom, roomId))
@@ -91,7 +94,6 @@ void Game::EnterRoom(int roomId)
     }
 }
 
-// Battle over
 void Game::OnBattleOver(BattleResult result)
 {
     battle.reset();
@@ -113,7 +115,6 @@ void Game::OnBattleOver(BattleResult result)
     ChangeScreen(GameScreen::Reward);
 }
 
-// Take reward
 void Game::TakeReward(int choiceIndex)
 {
     if (choiceIndex < 0 || choiceIndex >= static_cast<int>(run.rewardChoices.size()))
@@ -126,21 +127,18 @@ void Game::TakeReward(int choiceIndex)
     FinishRoom();
 }
 
-// Take rest
 void Game::TakeRest()
 {
     run.player.hp = std::min(run.player.hp + restHeal, run.player.maxHp);
     FinishRoom();
 }
 
-// Finish room
 void Game::FinishRoom()
 {
     run.map.MarkCleared(run.currentRoom);
     ChangeScreen(GameScreen::Map);
 }
 
-// Update
 void Game::Update(float deltaTime)
 {
     switch (screen)
@@ -152,11 +150,18 @@ void Game::Update(float deltaTime)
         }
         break;
     case GameScreen::Menu:
-        if (UpdateMenuScreen() == ScreenAction::StartPressed)
+    {
+        ScreenAction action = UpdateMenuScreen();
+        if (action == ScreenAction::StartPressed)
         {
             ChangeScreen(GameScreen::CharacterSelect);
         }
+        else if (action == ScreenAction::QuitPressed)
+        {
+            quit = true;
+        }
         break;
+    }
     case GameScreen::CharacterSelect:
         if (UpdateCharacterSelectScreen() == ScreenAction::CharacterConfirmed)
         {
@@ -174,7 +179,7 @@ void Game::Update(float deltaTime)
         break;
     }
     case GameScreen::Battle:
-        UpdateBattle();
+        UpdateBattle(deltaTime);
         break;
     case GameScreen::Reward:
     {
@@ -201,40 +206,39 @@ void Game::Update(float deltaTime)
     }
 }
 
-// Draw
 void Game::Draw() const
 {
     switch (screen)
     {
     case GameScreen::Logo:
-        DrawLogoScreen();
+        DrawLogoScreen(logo, assets);
         break;
     case GameScreen::Menu:
-        DrawMenuScreen();
+        DrawMenuScreen(assets);
         break;
     case GameScreen::CharacterSelect:
-        DrawCharacterSelectScreen();
+        DrawCharacterSelectScreen(assets);
         break;
     case GameScreen::Map:
-        DrawMapScreen(run.map, run.currentRoom);
+        DrawMapScreen(run.map, run.currentRoom, run.player, assets);
         break;
     case GameScreen::Battle:
         if (battle)
         {
-            DrawBattleScreen(battleView, *battle);
+            DrawBattleScreen(battleView, *battle, assets);
         }
         break;
     case GameScreen::Reward:
-        DrawRewardScreen(run.rewardChoices);
+        DrawRewardScreen(run.rewardChoices, assets);
         break;
     case GameScreen::Rest:
-        DrawRestScreen(run.player);
+        DrawRestScreen(run.player, assets);
         break;
     case GameScreen::Victory:
-        DrawEndScreen(true);
+        DrawEndScreen(true, assets);
         break;
     case GameScreen::GameOver:
-        DrawEndScreen(false);
+        DrawEndScreen(false, assets);
         break;
     }
 }

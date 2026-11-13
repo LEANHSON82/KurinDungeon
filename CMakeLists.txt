@@ -24,7 +24,10 @@ target_include_directories(mygame PRIVATE
     src/platform
     src/gameLayer
 )
-target_compile_definitions(mygame PRIVATE
-    RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/"
-)
 target_link_libraries(mygame PRIVATE raylib)
+
+add_custom_target(copy_resources ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+        "$<TARGET_FILE_DIR:mygame>/resources"
+)

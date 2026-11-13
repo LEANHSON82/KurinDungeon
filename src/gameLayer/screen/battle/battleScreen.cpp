@@ -1,115 +1,159 @@
 #include <raylib.h>
 #include "battleScreen.h"
+#include "battleLayout.h"
+#include "battleLog.h"
+#include "battlePlayback.h"
 #include "cards/cardDatabase.h"
-#include "combat/enemies/enemyDatabase.h"
-#include "gameConfig.h"
+#include "screen/ui/widget.h"
 
-// Layout
-static const int fontSize = 25;
-static const int titleSize = 35;
-static const int lineHeight = 40;
-static const int padding = 30;
-static const int panelTop = 120;
-static const int panelWidth = 800;
-static const int panelHeight = 760;
-static const int playerX = 100;
-static const int enemyX = screenWidth - 100 - panelWidth;
-
-// Draw helpers
-static int Count(const std::vector<CardId> &cards)
-{
-    return static_cast<int>(cards.size());
-}
-
-static void DrawTextLine(const char *text, int x, int &y, Color color)
-{
-    DrawText(text, x, y, fontSize, color);
-    y += lineHeight;
-}
-
-static void DrawCenteredText(const char *text, int y, int size, Color color)
-{
-    DrawText(text, (screenWidth - MeasureText(text, size)) / 2, y, size, color);
-}
-
-static int DrawSideTitle(int x, const char *title, Color color)
-{
-    DrawText(title, x + padding, panelTop + padding, titleSize, color);
-    return panelTop + padding + titleSize + lineHeight;
-}
-
-// Result name
-static const char *GetResultName(BattleResult result)
-{
-    switch (result)
-    {
-    case BattleResult::InProgress:
-        return "InProgress";
-    case BattleResult::Won:
-        return "Won";
-    case BattleResult::Lost:
-        return "Lost";
-    }
-
-    return "Unknown";
-}
-
-// Debug log
-static void LogBattle(const Battle &battle, const char *label)
-{
-    const Deck &deck = battle.GetDeck();
-    TraceLog(LOG_INFO,
-             "%s | Turn %d | %s | Player HP %d Block %d | Energy %d | Draw %d | Hand %d | Discard %d",
-             label, battle.GetTurn(), GetResultName(battle.GetResult()),
-             battle.GetPlayer().hp, battle.GetPlayerBlock(), battle.GetEnergy(),
-             Count(deck.GetDrawPile()), Count(deck.GetHand()), Count(deck.GetDiscardPile()));
-
-    const std::vector<Enemy> &enemies = battle.GetEnemies();
-    for (int i = 0; i < static_cast<int>(enemies.size()); i++)
-    {
-        const Enemy &enemy = enemies[i];
-        TraceLog(LOG_INFO, "    Enemy %d %s | HP %d Block %d Strength %d | Intent %s %d",
-                 i, GetEnemyDefinition(enemy.id).name, enemy.hp, enemy.block, enemy.strength,
-                 GetIntentName(enemy.intent.type), enemy.intent.value);
-    }
-}
-
-// Next living target
-static int StepTarget(const Battle &battle, int target, int step)
+static int NextLivingEnemy(const Battle &battle, int from, int step)
 {
     int count = static_cast<int>(battle.GetEnemies().size());
-    for (int i = 1; i <= count; i++)
+    int index = from;
+    for (int tries = 0; tries < count; tries++)
     {
-        int index = ((target + step * i) % count + count) % count;
+        index += step;
+        if (index < 0)
+        {
+            index = count - 1;
+        }
+        if (index >= count)
+        {
+            index = 0;
+        }
         if (battle.IsEnemyAlive(index))
         {
             return index;
         }
     }
-    return target;
+    return from;
 }
 
-// Update
-ScreenAction UpdateBattleScreen(BattleScreenState &state, Battle &battle)
+static void PlaySelectedCard(BattleScreenState &state, Battle &battle, const Assets &assets, int target)
 {
-    // Leave finished battle
+    int card = state.selectedCard;
+    bool played = battle.PlayCard(card, target);
+    LogBattle(battle, TextFormat("PlayCard(%d, target %d) %s", card, target, played ? "accepted" : "rejected"));
+    if (played)
+    {
+        PlayGameSound(assets.playCard);
+        state.selectedCard = -1;
+    }
+}
+
+static void ClickCard(BattleScreenState &state, int card)
+{
+    state.selectedCard = card == state.selectedCard ? -1 : card;
+}
+
+static void ClickBattlefield(BattleScreenState &state, Battle &battle, const Assets &assets)
+{
+    const Card &card = GetCard(battle.GetDeck().GetHand()[state.selectedCard]);
+    int enemy = GetEnemyUnderMouse(battle);
+    int enemyCount = static_cast<int>(battle.GetEnemies().size());
+
+    switch (card.target)
+    {
+    case Target::SingleEnemy:
+        if (enemy != -1)
+        {
+            PlaySelectedCard(state, battle, assets, enemy);
+        }
+        break;
+    case Target::AllEnemies:
+        if (enemy != -1)
+        {
+            PlaySelectedCard(state, battle, assets, -1);
+        }
+        break;
+    case Target::Self:
+        if (IsHovered(GetActorRect(playerActor, enemyCount)))
+        {
+            PlaySelectedCard(state, battle, assets, -1);
+        }
+        break;
+    }
+}
+
+static void UpdateKeyboard(BattleScreenState &state, Battle &battle, const Assets &assets)
+{
+    if (IsKeyPressed(KEY_RIGHT))
+    {
+        state.target = NextLivingEnemy(battle, state.target, 1);
+    }
+    if (IsKeyPressed(KEY_LEFT))
+    {
+        state.target = NextLivingEnemy(battle, state.target, -1);
+    }
+
+    for (int i = 0; i < static_cast<int>(battle.GetDeck().GetHand().size()); i++)
+    {
+        if (IsKeyPressed(KEY_ONE + i))
+        {
+            ClickCard(state, i);
+        }
+    }
+
+    if (IsKeyPressed(KEY_ENTER) && state.selectedCard != -1)
+    {
+        const Card &card = GetCard(battle.GetDeck().GetHand()[state.selectedCard]);
+        PlaySelectedCard(state, battle, assets, card.target == Target::SingleEnemy ? state.target : -1);
+    }
+}
+
+static void UpdateMouse(BattleScreenState &state, Battle &battle, const Assets &assets)
+{
+    int enemy = GetEnemyUnderMouse(battle);
+    if (enemy != -1)
+    {
+        state.target = enemy;
+    }
+
+    if (!IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        return;
+    }
+
+    int card = GetCardUnderMouse(battle, state.selectedCard);
+    if (card != -1)
+    {
+        ClickCard(state, card);
+    }
+    else if (state.selectedCard != -1)
+    {
+        ClickBattlefield(state, battle, assets);
+    }
+}
+
+ScreenAction UpdateBattleScreen(BattleScreenState &state, Battle &battle, const Assets &assets, float deltaTime)
+{
+    UpdatePlayback(state, battle, assets, deltaTime);
+    if (IsPlayingBack(state))
+    {
+        return ScreenAction::None;
+    }
+
     if (battle.GetResult() != BattleResult::InProgress)
     {
-        if (IsKeyPressed(KEY_ENTER))
+        if (IsKeyPressed(KEY_ENTER) || IsClicked(GetContinueButton()))
         {
             return ScreenAction::LeaveBattle;
         }
         return ScreenAction::None;
     }
 
-    // Keep target on a living enemy
     if (!battle.IsEnemyAlive(state.target))
     {
-        state.target = StepTarget(battle, state.target, 1);
+        state.target = NextLivingEnemy(battle, state.target, 1);
     }
 
-    // End turn
-    if (IsKeyPressed(KEY_E))
+    if (IsKeyPressed(KEY_ESCAPE) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    {
+        state.selectedCard = -1;
+        return ScreenAction::None;
+    }
+
+    if (IsKeyPressed(KEY_E) || IsClicked(GetEndTurnButton()))
     {
         LogBattle(battle, "Before EndTurn");
         battle.EndPlayerTurn();
@@ -118,120 +162,7 @@ ScreenAction UpdateBattleScreen(BattleScreenState &state, Battle &battle)
         return ScreenAction::None;
     }
 
-    // Change target
-    if (IsKeyPressed(KEY_RIGHT))
-    {
-        state.target = StepTarget(battle, state.target, 1);
-    }
-    if (IsKeyPressed(KEY_LEFT))
-    {
-        state.target = StepTarget(battle, state.target, -1);
-    }
-
-    // Select card
-    const int cardKeys[Battle::handSize]{KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE};
-    for (int i = 0; i < Battle::handSize; i++)
-    {
-        if (IsKeyPressed(cardKeys[i]) && battle.GetDeck().IsValidHandIndex(i))
-        {
-            state.selectedCard = i;
-        }
-    }
-
-    // Play card
-    if (IsKeyPressed(KEY_ENTER) && state.selectedCard != -1)
-    {
-        int card = state.selectedCard;
-        bool played = battle.PlayCard(card, state.target);
-        LogBattle(battle, TextFormat("PlayCard(%d, target %d) %s", card, state.target, played ? "accepted" : "rejected"));
-        if (played)
-        {
-            state.selectedCard = -1;
-        }
-    }
-
+    UpdateKeyboard(state, battle, assets);
+    UpdateMouse(state, battle, assets);
     return ScreenAction::None;
-}
-
-// Player panel
-static void DrawPlayerSide(const BattleScreenState &state, const Battle &battle)
-{
-    const PlayerState &player = battle.GetPlayer();
-    const Deck &deck = battle.GetDeck();
-    const int x = playerX + padding;
-
-    int y = DrawSideTitle(playerX, "PLAYER", DARKBLUE);
-    DrawTextLine(TextFormat("HP: %d / %d", player.hp, player.maxHp), x, y, BLACK);
-    DrawTextLine(TextFormat("Block: %d", battle.GetPlayerBlock()), x, y, BLACK);
-    DrawTextLine(TextFormat("Energy: %d / %d", battle.GetEnergy(), Battle::startingEnergy), x, y, BLACK);
-    DrawTextLine(TextFormat("Draw: %d | Hand: %d | Discard: %d",
-                            Count(deck.GetDrawPile()), Count(deck.GetHand()), Count(deck.GetDiscardPile())),
-                 x, y, BLACK);
-    y += lineHeight;
-
-    DrawTextLine("Hand:", x, y, DARKBLUE);
-    const std::vector<CardId> &hand = deck.GetHand();
-    for (int i = 0; i < Count(hand); i++)
-    {
-        const Card &card = GetCard(hand[i]);
-        Color color = battle.CanPlayCard(i, state.target) ? DARKGREEN : GRAY;
-        const char *marker = i == state.selectedCard ? ">" : " ";
-        DrawTextLine(TextFormat("%s %d: %s | Cost %d | %s", marker, i + 1, card.name, card.cost, DescribeEffects(card).c_str()),
-                     x, y, color);
-    }
-}
-
-// Enemy panel
-static void DrawEnemy(const BattleScreenState &state, const Battle &battle, int index, int x)
-{
-    const Enemy &enemy = battle.GetEnemies()[index];
-    const EnemyDefinition &definition = GetEnemyDefinition(enemy.id);
-    const int textX = x + padding;
-
-    Color titleColor = battle.IsEnemyAlive(index) ? MAROON : GRAY;
-    const char *title = index == state.target ? TextFormat("> %s", definition.name) : definition.name;
-    int y = DrawSideTitle(x, title, titleColor);
-    if (!battle.IsEnemyAlive(index))
-    {
-        DrawTextLine("Dead", textX, y, GRAY);
-        return;
-    }
-
-    DrawTextLine(TextFormat("HP: %d / %d", enemy.hp, definition.maxHp), textX, y, BLACK);
-    DrawTextLine(TextFormat("Block: %d", enemy.block), textX, y, BLACK);
-    DrawTextLine(TextFormat("Strength: %d", enemy.strength), textX, y, BLACK);
-    y += lineHeight;
-    DrawTextLine(TextFormat("%s %d", GetIntentName(enemy.intent.type), enemy.intent.value), textX, y, MAROON);
-}
-
-static void DrawEnemySide(const BattleScreenState &state, const Battle &battle)
-{
-    int count = static_cast<int>(battle.GetEnemies().size());
-    int columnWidth = panelWidth / count;
-    for (int i = 0; i < count; i++)
-    {
-        DrawEnemy(state, battle, i, enemyX + i * columnWidth);
-    }
-}
-
-// Draw
-void DrawBattleScreen(const BattleScreenState &state, const Battle &battle)
-{
-    DrawCenteredText(TextFormat("BATTLE - Turn %d", battle.GetTurn()), 40, 40, RED);
-    DrawPlayerSide(state, battle);
-    DrawEnemySide(state, battle);
-
-    const int y = panelTop + panelHeight + 50;
-    switch (battle.GetResult())
-    {
-    case BattleResult::InProgress:
-        DrawCenteredText("1-5: Select card | Left/Right: Target | Enter: Play | E: End turn", y, fontSize, GRAY);
-        break;
-    case BattleResult::Won:
-        DrawCenteredText("WON! Press ENTER to continue", y, titleSize, DARKGREEN);
-        break;
-    case BattleResult::Lost:
-        DrawCenteredText("LOST! Press ENTER to continue", y, titleSize, RED);
-        break;
-    }
 }

@@ -1,9 +1,9 @@
 #pragma once
+#include "assets/assets.h"
 #include "map/dungeonMap.h"
+#include "run/player.h"
 #include "screen/screenAction.h"
 
-// Update
 ScreenAction UpdateMapScreen(const DungeonMap &map, int currentRoom, int &chosenRoom);
 
-// Draw
-void DrawMapScreen(const DungeonMap &map, int currentRoom);
+void DrawMapScreen(const DungeonMap &map, int currentRoom, const PlayerState &player, const Assets &assets);

@@ -1,6 +1,5 @@
 #include "card.h"
 
-// Effect name
 static const char *GetEffectName(EffectType type)
 {
     switch (type)
@@ -14,7 +13,6 @@ static const char *GetEffectName(EffectType type)
     return "Unknown";
 }
 
-// Description
 std::string DescribeEffects(const Card &card)
 {
     std::string text;
