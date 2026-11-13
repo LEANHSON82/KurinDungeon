@@ -22,3 +22,10 @@ CMakeSettings.json
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Purchased assets (license forbids redistribution)
+/resources/images/
+/resources/fonts/
+/resources/sounds/
+/resources/licenses/
+/resources/*.zip
