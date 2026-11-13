@@ -8,6 +8,15 @@ enum class CardId
     Strike,
     Defend,
     HeavyStrike,
+    Cleave,
+};
+
+// Card targets
+enum class Target
+{
+    Self,
+    SingleEnemy,
+    AllEnemies,
 };
 
 // Effect types
@@ -29,6 +38,7 @@ struct Card
 {
     const char *name = "";
     int cost = 0;
+    Target target = Target::Self;
     std::vector<Effect> effects;
 };
 

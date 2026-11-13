@@ -5,11 +5,16 @@
 #include "combat/enemies/enemyAi.h"
 
 // Setup
-Battle::Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed)
-    : player(playerState), enemy(CreateEnemy(enemyId))
+Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed)
+    : player(playerState)
 {
+    for (EnemyId id : enemyIds)
+    {
+        enemies.push_back(CreateEnemy(id));
+    }
+
     deck.Init(player.masterDeck, seed);
-    enemy.intent = ChooseIntent(enemy, turn);
+    ChooseEnemyIntents();
     StartPlayerTurn();
     CheckResult();
 }
@@ -22,21 +27,57 @@ void Battle::StartPlayerTurn()
     deck.DrawCards(handSize);
 }
 
+// Enemy alive
+bool Battle::IsEnemyAlive(int index) const
+{
+    return index >= 0 && index < static_cast<int>(enemies.size()) && enemies[index].hp > 0;
+}
+
 // Validate card
-bool Battle::CanPlayCard(int handIndex) const
+bool Battle::CanPlayCard(int handIndex, int targetIndex) const
 {
     if (result != BattleResult::InProgress || !deck.IsValidHandIndex(handIndex))
     {
         return false;
     }
 
-    return energy >= GetCard(deck.GetHand()[handIndex]).cost;
+    const Card &card = GetCard(deck.GetHand()[handIndex]);
+    if (card.target == Target::SingleEnemy && !IsEnemyAlive(targetIndex))
+    {
+        return false;
+    }
+
+    return energy >= card.cost;
+}
+
+// Card targets
+std::vector<Enemy *> Battle::GetTargets(const Card &card, int targetIndex)
+{
+    std::vector<Enemy *> targets;
+    switch (card.target)
+    {
+    case Target::Self:
+        break;
+    case Target::SingleEnemy:
+        targets.push_back(&enemies[targetIndex]);
+        break;
+    case Target::AllEnemies:
+        for (int i = 0; i < static_cast<int>(enemies.size()); i++)
+        {
+            if (IsEnemyAlive(i))
+            {
+                targets.push_back(&enemies[i]);
+            }
+        }
+        break;
+    }
+    return targets;
 }
 
 // Play card
-bool Battle::PlayCard(int handIndex)
+bool Battle::PlayCard(int handIndex, int targetIndex)
 {
-    if (!CanPlayCard(handIndex))
+    if (!CanPlayCard(handIndex, targetIndex))
     {
         return false;
     }
@@ -47,7 +88,7 @@ bool Battle::PlayCard(int handIndex)
     energy -= card.cost;
 
     // Apply effects
-    ApplyCardEffects(card, {enemy, playerBlock});
+    ApplyCardEffects(card, {GetTargets(card, targetIndex), playerBlock});
 
     // Discard
     deck.DiscardPlayedCard(handIndex);
@@ -66,7 +107,6 @@ void Battle::EndPlayerTurn()
     // Enemy phase
     deck.DiscardHand();
     ExecuteEnemyTurn();
-    CheckResult();
 
     if (result != BattleResult::InProgress)
     {
@@ -75,33 +115,60 @@ void Battle::EndPlayerTurn()
 
     // Next turn
     turn++;
-    enemy.intent = ChooseIntent(enemy, turn);
+    ChooseEnemyIntents();
     StartPlayerTurn();
 }
 
-// Execute intent
+// Next intents
+void Battle::ChooseEnemyIntents()
+{
+    for (Enemy &enemy : enemies)
+    {
+        if (enemy.hp > 0)
+        {
+            enemy.intent = ChooseIntent(enemy, turn);
+        }
+    }
+}
+
+// Execute intents
 void Battle::ExecuteEnemyTurn()
 {
-    // Expire block
-    enemy.block = 0;
-
-    // Boss action used
-    if (enemy.intent.bossAction)
+    for (Enemy &enemy : enemies)
     {
-        enemy.usedBossAction = true;
-    }
+        if (enemy.hp <= 0)
+        {
+            continue;
+        }
 
-    switch (enemy.intent.type)
-    {
-    case IntentType::Attack:
-        ApplyDamage(enemy.intent.value, player.hp, playerBlock);
-        break;
-    case IntentType::Defend:
-        enemy.block += enemy.intent.value;
-        break;
-    case IntentType::Buff:
-        enemy.strength += enemy.intent.value;
-        break;
+        // Expire block
+        enemy.block = 0;
+
+        // Boss action used
+        if (enemy.intent.bossAction)
+        {
+            enemy.usedBossAction = true;
+        }
+
+        switch (enemy.intent.type)
+        {
+        case IntentType::Attack:
+            ApplyDamage(enemy.intent.value, player.hp, playerBlock);
+            break;
+        case IntentType::Defend:
+            enemy.block += enemy.intent.value;
+            break;
+        case IntentType::Buff:
+            enemy.strength += enemy.intent.value;
+            break;
+        }
+
+        // Stop when player dies
+        CheckResult();
+        if (result != BattleResult::InProgress)
+        {
+            return;
+        }
     }
 }
 
@@ -111,9 +178,15 @@ void Battle::CheckResult()
     if (player.hp <= 0)
     {
         result = BattleResult::Lost;
+        return;
     }
-    else if (enemy.hp <= 0)
+
+    for (const Enemy &enemy : enemies)
     {
-        result = BattleResult::Won;
+        if (enemy.hp > 0)
+        {
+            return;
+        }
     }
+    result = BattleResult::Won;
 }

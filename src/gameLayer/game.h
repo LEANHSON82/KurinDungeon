@@ -2,6 +2,7 @@
 #include <memory>
 #include "combat/battle.h"
 #include "run/runState.h"
+#include "screen/battle/battleScreen.h"
 #include "screen/logo/logoScreen.h"
 #include "screen/screen.h"
 
@@ -16,7 +17,7 @@ private:
     // Flow
     void ChangeScreen(GameScreen nextScreen);
     void StartRun();
-    void StartBattle(EnemyId enemyId);
+    void StartBattle(const std::vector<EnemyId> &enemyIds);
     void UpdateBattle();
     void EnterRoom(int roomId);
     void OnBattleOver(BattleResult result);
@@ -29,4 +30,5 @@ private:
     LogoScreenState logo;
     RunState run;
     std::unique_ptr<Battle> battle;
+    BattleScreenState battleView;
 };

@@ -137,6 +137,22 @@ bool DungeonMap::HasRestParent(int roomId) const
     return false;
 }
 
+// Enemy group by floor
+static std::vector<EnemyId> PickEnemyGroup(std::mt19937 &rng, int floor)
+{
+    if (floor < mapFloors / 2)
+    {
+        return {EnemyId::Slime};
+    }
+
+    std::uniform_int_distribution<int> pickGroup(0, 1);
+    if (pickGroup(rng) == 0)
+    {
+        return {EnemyId::Slime, EnemyId::Slime};
+    }
+    return {EnemyId::Guardian};
+}
+
 // Room types and enemies
 void DungeonMap::AssignRooms(std::mt19937 &rng)
 {
@@ -158,11 +174,14 @@ void DungeonMap::AssignRooms(std::mt19937 &rng)
             room.type = lastFloor || rolledRest ? RoomType::Rest : RoomType::Combat;
 
             // Enemy group
-            room.enemy = floor < mapFloors / 2 ? EnemyId::Slime : EnemyId::Guardian;
+            if (room.type == RoomType::Combat)
+            {
+                room.enemies = PickEnemyGroup(rng, floor);
+            }
         }
     }
 
-    rooms.back().enemy = EnemyId::Warden;
+    rooms.back().enemies = {EnemyId::Warden};
 }
 
 // Graph check

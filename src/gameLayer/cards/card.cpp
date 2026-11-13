@@ -28,5 +28,9 @@ std::string DescribeEffects(const Card &card)
         text += ' ';
         text += std::to_string(effect.value);
     }
+    if (card.target == Target::AllEnemies)
+    {
+        text += " to all";
+    }
     return text;
 }

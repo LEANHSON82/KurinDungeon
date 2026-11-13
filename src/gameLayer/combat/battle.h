@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <vector>
 #include "cards/deck.h"
 #include "combat/enemies/enemy.h"
 #include "run/player.h"
@@ -19,16 +20,17 @@ public:
     static constexpr int startingEnergy = 3;
     static constexpr int handSize = 5;
 
-    Battle(PlayerState &playerState, EnemyId enemyId, std::uint32_t seed);
+    Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed);
 
     // Actions
-    bool CanPlayCard(int handIndex) const;
-    bool PlayCard(int handIndex);
+    bool CanPlayCard(int handIndex, int targetIndex) const;
+    bool PlayCard(int handIndex, int targetIndex);
     void EndPlayerTurn();
 
     // Read only
     const PlayerState &GetPlayer() const { return player; }
-    const Enemy &GetEnemy() const { return enemy; }
+    const std::vector<Enemy> &GetEnemies() const { return enemies; }
+    bool IsEnemyAlive(int index) const;
     const Deck &GetDeck() const { return deck; }
     int GetEnergy() const { return energy; }
     int GetPlayerBlock() const { return playerBlock; }
@@ -40,12 +42,14 @@ private:
     void StartPlayerTurn();
     void ExecuteEnemyTurn();
     void CheckResult();
+    void ChooseEnemyIntents();
+    std::vector<Enemy *> GetTargets(const Card &card, int targetIndex);
 
     // Borrowed player
     PlayerState &player;
 
     // Battle state
-    Enemy enemy;
+    std::vector<Enemy> enemies;
     Deck deck;
     int energy = 0;
     int playerBlock = 0;

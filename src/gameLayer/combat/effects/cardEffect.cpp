@@ -2,12 +2,15 @@
 #include "combat/damage.h"
 
 // Single effect
-static void ApplyEffect(const Effect &effect, EffectContext context)
+static void ApplyEffect(const Effect &effect, const EffectContext &context)
 {
     switch (effect.type)
     {
     case EffectType::Damage:
-        ApplyDamage(effect.value, context.enemy.hp, context.enemy.block);
+        for (Enemy *enemy : context.enemies)
+        {
+            ApplyDamage(effect.value, enemy->hp, enemy->block);
+        }
         break;
     case EffectType::Block:
         context.playerBlock += effect.value;
@@ -16,7 +19,7 @@ static void ApplyEffect(const Effect &effect, EffectContext context)
 }
 
 // All effects
-void ApplyCardEffects(const Card &card, EffectContext context)
+void ApplyCardEffects(const Card &card, const EffectContext &context)
 {
     for (const Effect &effect : card.effects)
     {

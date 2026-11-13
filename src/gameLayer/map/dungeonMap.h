@@ -24,7 +24,7 @@ struct Room
     RoomType type = RoomType::Start;
     std::vector<int> next;
     bool cleared = false;
-    EnemyId enemy = EnemyId::Slime;
+    std::vector<EnemyId> enemies;
     int floor = 0;
     int column = 0;
 

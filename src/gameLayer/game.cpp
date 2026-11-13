@@ -43,9 +43,10 @@ void Game::StartRun()
 }
 
 // New battle
-void Game::StartBattle(EnemyId enemyId)
+void Game::StartBattle(const std::vector<EnemyId> &enemyIds)
 {
-    battle = std::make_unique<Battle>(run.player, enemyId, static_cast<std::uint32_t>(run.rng()));
+    battle = std::make_unique<Battle>(run.player, enemyIds, static_cast<std::uint32_t>(run.rng()));
+    battleView = BattleScreenState{};
 }
 
 // Battle result
@@ -56,7 +57,7 @@ void Game::UpdateBattle()
         ChangeScreen(GameScreen::Map);
         return;
     }
-    if (UpdateBattleScreen(*battle) != ScreenAction::LeaveBattle)
+    if (UpdateBattleScreen(battleView, *battle) != ScreenAction::LeaveBattle)
     {
         return;
     }
@@ -78,7 +79,7 @@ void Game::EnterRoom(int roomId)
     case RoomType::Combat:
     case RoomType::Boss:
         run.currentRoom = roomId;
-        StartBattle(room.enemy);
+        StartBattle(room.enemies);
         ChangeScreen(GameScreen::Battle);
         break;
     case RoomType::Rest:
@@ -220,7 +221,7 @@ void Game::Draw() const
     case GameScreen::Battle:
         if (battle)
         {
-            DrawBattleScreen(*battle);
+            DrawBattleScreen(battleView, *battle);
         }
         break;
     case GameScreen::Reward:
