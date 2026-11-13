@@ -1,15 +1,16 @@
+#include <algorithm>
 #include <raylib.h>
 #include <random>
 #include "game.h"
 #include "cards/cardDatabase.h"
 #include "screen/battle/battleScreen.h"
 #include "screen/characterSelect/characterSelectScreen.h"
+#include "screen/end/endScreen.h"
 #include "screen/logo/logoScreen.h"
-#include "screen/lose/loseScreen.h"
 #include "screen/map/mapScreen.h"
 #include "screen/menu/menuScreen.h"
+#include "screen/rest/restScreen.h"
 #include "screen/reward/rewardScreen.h"
-#include "screen/win/winScreen.h"
 
 // Change screen
 void Game::ChangeScreen(GameScreen nextScreen)
@@ -72,14 +73,21 @@ void Game::EnterRoom(int roomId)
     }
 
     const Room &room = run.map.GetRoom(roomId);
-    if (room.type != RoomType::Combat && room.type != RoomType::Boss)
+    switch (room.type)
     {
-        return;
+    case RoomType::Combat:
+    case RoomType::Boss:
+        run.currentRoom = roomId;
+        StartBattle(room.enemy);
+        ChangeScreen(GameScreen::Battle);
+        break;
+    case RoomType::Rest:
+        run.currentRoom = roomId;
+        ChangeScreen(GameScreen::Rest);
+        break;
+    case RoomType::Start:
+        break;
     }
-
-    run.currentRoom = roomId;
-    StartBattle(room.enemy);
-    ChangeScreen(GameScreen::Battle);
 }
 
 // Battle over
@@ -87,16 +95,21 @@ void Game::OnBattleOver(BattleResult result)
 {
     battle.reset();
 
-    if (result == BattleResult::Won)
+    if (result == BattleResult::Lost)
+    {
+        ChangeScreen(GameScreen::GameOver);
+        return;
+    }
+
+    if (run.map.GetRoom(run.currentRoom).type == RoomType::Boss)
     {
         run.map.MarkCleared(run.currentRoom);
-        run.rewardChoices = RollRewards(run.rng, 3);
-        ChangeScreen(GameScreen::Reward);
+        ChangeScreen(GameScreen::Victory);
+        return;
     }
-    else
-    {
-        ChangeScreen(GameScreen::Lose);
-    }
+
+    run.rewardChoices = RollRewards(run.rng, 3);
+    ChangeScreen(GameScreen::Reward);
 }
 
 // Take reward
@@ -109,15 +122,21 @@ void Game::TakeReward(int choiceIndex)
 
     run.player.masterDeck.push_back(run.rewardChoices[choiceIndex]);
     run.rewardChoices.clear();
+    FinishRoom();
+}
 
-    if (run.map.GetRoom(run.currentRoom).next.empty())
-    {
-        ChangeScreen(GameScreen::Win);
-    }
-    else
-    {
-        ChangeScreen(GameScreen::Map);
-    }
+// Take rest
+void Game::TakeRest()
+{
+    run.player.hp = std::min(run.player.hp + restHeal, run.player.maxHp);
+    FinishRoom();
+}
+
+// Finish room
+void Game::FinishRoom()
+{
+    run.map.MarkCleared(run.currentRoom);
+    ChangeScreen(GameScreen::Map);
 }
 
 // Update
@@ -165,14 +184,15 @@ void Game::Update(float deltaTime)
         }
         break;
     }
-    case GameScreen::Lose:
-        if (UpdateLoseScreen() == ScreenAction::ReturnToMenu)
+    case GameScreen::Rest:
+        if (UpdateRestScreen() == ScreenAction::RestTaken)
         {
-            ChangeScreen(GameScreen::Menu);
+            TakeRest();
         }
         break;
-    case GameScreen::Win:
-        if (UpdateWinScreen() == ScreenAction::ReturnToMenu)
+    case GameScreen::Victory:
+    case GameScreen::GameOver:
+        if (UpdateEndScreen() == ScreenAction::ReturnToMenu)
         {
             ChangeScreen(GameScreen::Menu);
         }
@@ -206,11 +226,14 @@ void Game::Draw() const
     case GameScreen::Reward:
         DrawRewardScreen(run.rewardChoices);
         break;
-    case GameScreen::Lose:
-        DrawLoseScreen();
+    case GameScreen::Rest:
+        DrawRestScreen(run.player);
         break;
-    case GameScreen::Win:
-        DrawWinScreen();
+    case GameScreen::Victory:
+        DrawEndScreen(true);
+        break;
+    case GameScreen::GameOver:
+        DrawEndScreen(false);
         break;
     }
 }

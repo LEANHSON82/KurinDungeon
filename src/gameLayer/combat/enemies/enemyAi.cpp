@@ -11,6 +11,12 @@ Intent ChooseIntent(const Enemy &enemy, int turn)
 {
     const EnemyDefinition &definition = GetEnemyDefinition(enemy.id);
 
+    // Boss action once
+    if (enemy.id == EnemyId::Warden && !enemy.usedBossAction && enemy.hp * 2 < definition.maxHp)
+    {
+        return Intent{IntentType::Defend, definition.block * 2, true};
+    }
+
     // Defend first
     if (IsLowHp(enemy, definition))
     {

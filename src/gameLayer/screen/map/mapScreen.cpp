@@ -12,7 +12,7 @@ const float bottomY = 1000.0f;
 static Vector2 GetRoomPosition(const Room &room)
 {
     float x = screenWidth / 2.0f;
-    if (room.type == RoomType::Combat)
+    if (room.IsOnGrid())
     {
         x += (room.column - (mapColumns - 1) / 2.0f) * columnGap;
     }
@@ -29,6 +29,8 @@ static const char *GetRoomLabel(RoomType type)
         return "S";
     case RoomType::Combat:
         return "C";
+    case RoomType::Rest:
+        return "R";
     case RoomType::Boss:
         return "B";
     }

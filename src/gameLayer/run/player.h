@@ -2,6 +2,9 @@
 #include <vector>
 #include "cards/card.h"
 
+// Rest
+const int restHeal = 20;
+
 struct PlayerState
 {
     // Health

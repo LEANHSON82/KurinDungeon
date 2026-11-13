@@ -21,6 +21,8 @@ private:
     void EnterRoom(int roomId);
     void OnBattleOver(BattleResult result);
     void TakeReward(int choiceIndex);
+    void TakeRest();
+    void FinishRoom();
 
     // State
     GameScreen screen = GameScreen::Logo;

@@ -14,6 +14,7 @@ enum class RoomType
 {
     Start,
     Combat,
+    Rest,
     Boss,
 };
 
@@ -26,6 +27,8 @@ struct Room
     EnemyId enemy = EnemyId::Slime;
     int floor = 0;
     int column = 0;
+
+    bool IsOnGrid() const { return floor >= 0 && floor < mapFloors; }
 };
 
 class DungeonMap
@@ -50,7 +53,8 @@ private:
     void AddEdge(int fromRoom, int toRoom);
     bool HasEdge(int fromRoom, int toRoom) const;
     int PickNextColumn(const std::vector<std::vector<int>> &grid, std::mt19937 &rng, int floor, int column) const;
-    void AssignRooms();
+    bool HasRestParent(int roomId) const;
+    void AssignRooms(std::mt19937 &rng);
 
     std::vector<Room> rooms;
 };

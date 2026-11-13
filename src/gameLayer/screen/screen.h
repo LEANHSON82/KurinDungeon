@@ -9,6 +9,7 @@ enum class GameScreen
     Map,
     Battle,
     Reward,
-    Lose,
-    Win,
+    Rest,
+    Victory,
+    GameOver,
 };

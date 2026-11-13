@@ -85,6 +85,12 @@ void Battle::ExecuteEnemyTurn()
     // Expire block
     enemy.block = 0;
 
+    // Boss action used
+    if (enemy.intent.bossAction)
+    {
+        enemy.usedBossAction = true;
+    }
+
     switch (enemy.intent.type)
     {
     case IntentType::Attack:

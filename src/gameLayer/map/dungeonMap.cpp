@@ -59,7 +59,7 @@ DungeonMap DungeonMap::Generate(std::uint32_t seed)
         }
     }
 
-    map.AssignRooms();
+    map.AssignRooms(rng);
     return map;
 }
 
@@ -124,20 +124,45 @@ int DungeonMap::PickNextColumn(const std::vector<std::vector<int>> &grid, std::m
     return choices[pick(rng)];
 }
 
-// Room types and enemies
-void DungeonMap::AssignRooms()
+// Parent is rest
+bool DungeonMap::HasRestParent(int roomId) const
 {
-    for (Room &room : rooms)
+    for (int id = 0; id < GetRoomCount(); id++)
     {
-        if (room.type == RoomType::Boss)
+        if (rooms[id].type == RoomType::Rest && HasEdge(id, roomId))
         {
-            room.enemy = EnemyId::Warden;
-        }
-        else if (room.type == RoomType::Combat)
-        {
-            room.enemy = room.floor < mapFloors / 2 ? EnemyId::Slime : EnemyId::Guardian;
+            return true;
         }
     }
+    return false;
+}
+
+// Room types and enemies
+void DungeonMap::AssignRooms(std::mt19937 &rng)
+{
+    std::uniform_int_distribution<int> pickType(0, 3);
+    for (int floor = 0; floor < mapFloors; floor++)
+    {
+        for (int id = 0; id < GetRoomCount(); id++)
+        {
+            Room &room = rooms[id];
+            if (room.floor != floor || room.type == RoomType::Start || room.type == RoomType::Boss)
+            {
+                continue;
+            }
+
+            // Rest rules
+            bool lastFloor = floor == mapFloors - 1;
+            bool canRest = floor >= 2 && floor < mapFloors - 2 && !HasRestParent(id);
+            bool rolledRest = canRest && pickType(rng) == 0;
+            room.type = lastFloor || rolledRest ? RoomType::Rest : RoomType::Combat;
+
+            // Enemy group
+            room.enemy = floor < mapFloors / 2 ? EnemyId::Slime : EnemyId::Guardian;
+        }
+    }
+
+    rooms.back().enemy = EnemyId::Warden;
 }
 
 // Graph check
@@ -178,8 +203,8 @@ bool DungeonMap::Validate() const
                 {
                     const Room &aTo = rooms[aNext];
                     const Room &bTo = rooms[bNext];
-                    bool sameFloors = a.type == RoomType::Combat && b.type == RoomType::Combat &&
-                                      aTo.type == RoomType::Combat && bTo.type == RoomType::Combat &&
+                    bool sameFloors = a.IsOnGrid() && b.IsOnGrid() &&
+                                      aTo.IsOnGrid() && bTo.IsOnGrid() &&
                                       a.floor == b.floor;
                     if (sameFloors && a.column < b.column && aTo.column > bTo.column)
                     {

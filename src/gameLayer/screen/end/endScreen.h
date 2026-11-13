@@ -2,7 +2,7 @@
 #include "screen/screenAction.h"
 
 // Update
-ScreenAction UpdateLoseScreen();
+ScreenAction UpdateEndScreen();
 
 // Draw
-void DrawLoseScreen();
+void DrawEndScreen(bool won);
