@@ -32,6 +32,13 @@ void Game::StartRun()
     run.seed = std::random_device{}();
     run.rng.seed(run.seed);
     TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
+
+    // Map
+    run.map = DungeonMap::Generate(run.seed);
+    if (!run.map.Validate())
+    {
+        TraceLog(LOG_WARNING, "Map check failed for seed %u", static_cast<unsigned>(run.seed));
+    }
 }
 
 // New battle
@@ -65,7 +72,7 @@ void Game::EnterRoom(int roomId)
     }
 
     const Room &room = run.map.GetRoom(roomId);
-    if (room.type != RoomType::Combat)
+    if (room.type != RoomType::Combat && room.type != RoomType::Boss)
     {
         return;
     }

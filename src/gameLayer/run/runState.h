@@ -12,7 +12,7 @@ struct RunState
     PlayerState player;
 
     // Map
-    DungeonMap map = DungeonMap::CreateFixed();
+    DungeonMap map;
     int currentRoom = 0;
 
     // Rewards

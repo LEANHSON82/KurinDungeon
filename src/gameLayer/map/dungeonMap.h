@@ -1,12 +1,20 @@
 #pragma once
+#include <cstdint>
+#include <random>
 #include <vector>
 #include "combat/enemies/enemyDefinition.h"
+
+// Map size
+const int mapFloors = 7;
+const int mapColumns = 4;
+const int mapPaths = 3;
 
 // Room types
 enum class RoomType
 {
     Start,
     Combat,
+    Boss,
 };
 
 // Room data
@@ -16,13 +24,15 @@ struct Room
     std::vector<int> next;
     bool cleared = false;
     EnemyId enemy = EnemyId::Slime;
+    int floor = 0;
+    int column = 0;
 };
 
 class DungeonMap
 {
 public:
     // Setup
-    static DungeonMap CreateFixed();
+    static DungeonMap Generate(std::uint32_t seed);
 
     // Actions
     bool CanVisit(int fromRoom, int toRoom) const;
@@ -30,8 +40,17 @@ public:
 
     // Read only
     bool IsValidRoom(int roomId) const;
+    bool Validate() const;
+    int GetRoomCount() const { return static_cast<int>(rooms.size()); }
     const Room &GetRoom(int roomId) const { return rooms[roomId]; }
 
 private:
+    // Build steps
+    int AddRoom(RoomType type, int floor, int column);
+    void AddEdge(int fromRoom, int toRoom);
+    bool HasEdge(int fromRoom, int toRoom) const;
+    int PickNextColumn(const std::vector<std::vector<int>> &grid, std::mt19937 &rng, int floor, int column) const;
+    void AssignRooms();
+
     std::vector<Room> rooms;
 };
