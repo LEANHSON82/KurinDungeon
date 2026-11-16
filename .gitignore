@@ -29,3 +29,6 @@ Thumbs.db
 /resources/sounds/
 /resources/licenses/
 /resources/*.zip
+
+# Local tests
+/tests/

@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <raylib.h>
-#include "gameConfig.h"
-#include "game.h"
+#include "game/game.h"
+#include "game/gameConfig.h"
 
 static Rectangle GetViewport()
 {
