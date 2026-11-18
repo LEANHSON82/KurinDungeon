@@ -4,21 +4,32 @@
 #include "core/systems/battle/combatRules.h"
 #include "core/systems/battle/deckSystem.h"
 
+// Enemy AI tuning.
+static constexpr int bossAbilityHpPercent = 50;
+static constexpr int bossAbilityBlockMultiplier = 2;
+static constexpr int lowHpDefendPercent = 30;
+static constexpr int buffEveryTurns = 3;
+
+static bool IsBelowPercent(const Health &health, int maxHp, int percent)
+{
+    return health.hp * 100 < maxHp * percent;
+}
+
 static Intent ChooseIntent(const Enemy &enemy, const Health &health, const Strength &strength, const BossAbility *boss, int turn)
 {
     const EnemyDefinition &definition = GetEnemyDefinition(enemy.id);
 
-    if (boss != nullptr && !boss->used && health.hp * 2 < definition.maxHp)
+    if (boss != nullptr && !boss->used && IsBelowPercent(health, definition.maxHp, bossAbilityHpPercent))
     {
-        return Intent{IntentType::Defend, definition.block * 2, true};
+        return Intent{IntentType::Defend, definition.block * bossAbilityBlockMultiplier, true};
     }
 
-    if (health.hp * 10 < definition.maxHp * 3)
+    if (IsBelowPercent(health, definition.maxHp, lowHpDefendPercent))
     {
         return Intent{IntentType::Defend, definition.block, false};
     }
 
-    if (turn % 3 == 0)
+    if (turn % buffEveryTurns == 0)
     {
         return Intent{IntentType::Buff, definition.buff, false};
     }

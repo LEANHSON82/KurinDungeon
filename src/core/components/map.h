@@ -3,9 +3,9 @@
 #include "core/data/enemies.h"
 #include "ecs/entity.h"
 
-const int mapFloors = 7;
-const int mapColumns = 4;
-const int mapPaths = 3;
+inline constexpr int mapFloors = 7;
+inline constexpr int mapColumns = 4;
+inline constexpr int mapPaths = 3;
 
 enum class RoomType
 {

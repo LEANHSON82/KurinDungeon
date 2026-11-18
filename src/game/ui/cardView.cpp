@@ -5,18 +5,25 @@
 #include "game/ui/text.h"
 #include "game/ui/widget.h"
 
-static const float tooltipWidth = 420.0f;
-static const float tooltipHeight = 192.0f;
+static constexpr float tooltipWidth = 420.0f;
+static constexpr float tooltipHeight = 192.0f;
 
 static const char *GetKindName(const Card &card)
 {
-    return card.target == Target::Self ? "Skill" : "Attack";
+    switch (card.kind)
+    {
+    case CardKind::Attack:
+        return "Attack";
+    case CardKind::Skill:
+        return "Skill";
+    }
+    return "";
 }
 
 void DrawCardSlot(const Assets &assets, CardId id, Rectangle rect, bool playable, bool selected)
 {
     const Card &card = GetCard(id);
-    Color tint = playable ? WHITE : Color{100, 95, 110, 255};
+    Color tint = playable ? WHITE : unplayableTint;
     Vector2 center{rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f};
 
     if (selected)

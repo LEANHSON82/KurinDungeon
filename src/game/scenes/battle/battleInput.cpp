@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include "core/components/cards.h"
+#include "core/log.h"
 #include "core/state/battle.h"
 #include "core/state/run.h"
 #include "core/systems/battle/combatRules.h"
@@ -52,11 +53,11 @@ static void PlaySelectedCard(ecs::Registry &registry, ecs::Entity target)
     BattleUi &ui = registry.Resource<BattleUi>();
     if (!CanPlayCard(registry, ui.selectedCard, target))
     {
-        TraceLog(LOG_INFO, "PlayCard rejected by input");
+        Log(LogLevel::Debug, "PlayCard rejected by input");
         return;
     }
 
-    PushBattleCommand(registry, {BattleCommandType::PlayCard, ui.selectedCard, target});
+    PushBattleCommand(registry, PlayCardCommand(ui.selectedCard, target));
     PlayGameSound(registry.Resource<Assets>().playCard);
     ui.selectedCard = ecs::nullEntity;
 }
@@ -145,9 +146,9 @@ void BattleInputSystem(ecs::Registry &registry)
 {
     if (registry.Resource<BattleState>().result != BattleResult::InProgress)
     {
-        if (IsKeyPressed(KEY_ENTER) || IsClicked(GetContinueButton()))
+        if (IsConfirmPressed(GetContinueButton()))
         {
-            PushRunCommand(registry, {RunCommandType::FinishBattle, ecs::nullEntity, 0, 0});
+            PushRunCommand(registry, FinishBattleCommand());
         }
         return;
     }
@@ -166,7 +167,7 @@ void BattleInputSystem(ecs::Registry &registry)
 
     if (IsKeyPressed(KEY_E) || IsClicked(GetEndTurnButton()))
     {
-        PushBattleCommand(registry, {BattleCommandType::EndTurn, ecs::nullEntity, ecs::nullEntity});
+        PushBattleCommand(registry, EndTurnCommand());
         ui.selectedCard = ecs::nullEntity;
         return;
     }

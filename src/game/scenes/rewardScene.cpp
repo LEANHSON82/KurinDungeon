@@ -9,10 +9,10 @@
 #include "game/ui/text.h"
 #include "game/ui/widget.h"
 
-static const float rowWidth = 760.0f;
-static const float rowGap = 40.0f;
-static const float firstRowY = 320.0f;
-static const float numberGap = 50.0f;
+static constexpr float rowWidth = 760.0f;
+static constexpr float rowGap = 40.0f;
+static constexpr float firstRowY = 320.0f;
+static constexpr float numberGap = 50.0f;
 
 static Rectangle GetChoiceRect(int index)
 {
@@ -26,7 +26,7 @@ void UpdateRewardScene(ecs::Registry &registry)
     {
         if (IsKeyPressed(KEY_ONE + i) || IsClicked(GetChoiceRect(i)))
         {
-            PushRunCommand(registry, {RunCommandType::TakeReward, ecs::nullEntity, i, 0});
+            PushRunCommand(registry, TakeRewardCommand(i));
             return;
         }
     }
@@ -37,9 +37,7 @@ void DrawRewardScene(const ecs::Registry &registry)
     const Assets &assets = registry.Resource<Assets>();
     const std::vector<CardId> &choices = registry.Resource<RunState>().rewardChoices;
 
-    DrawBackground(assets.battleBackground, WHITE);
-    DrawScreenShade(150);
-    DrawTextOutlined(assets.font, "Choose a card", {screenWidth / 2.0f, 200.0f}, titleText, goldColor);
+    DrawSceneBackdrop(assets, assets.battleBackground, 150, "Choose a card", 200.0f);
 
     for (int i = 0; i < static_cast<int>(choices.size()); i++)
     {

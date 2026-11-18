@@ -1,4 +1,5 @@
 #include "game/ui/widget.h"
+#include <algorithm>
 #include "game/gameConfig.h"
 #include "game/ui/image.h"
 #include "game/ui/style.h"
@@ -9,6 +10,36 @@ Rectangle CenteredRect(float y, float width, float height)
     return {screenWidth / 2.0f - width / 2.0f, y, width, height};
 }
 
+namespace
+{
+struct Pointer
+{
+    Vector2 pressedAt{};
+    bool pressed = false;
+};
+
+Pointer pointer;
+
+bool IsPressStartedIn(Rectangle rect)
+{
+    return pointer.pressed && CheckCollisionPointRec(pointer.pressedAt, rect);
+}
+}
+
+void UpdatePointer()
+{
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        pointer.pressedAt = GetMousePosition();
+        pointer.pressed = true;
+    }
+}
+
+void ResetPointer()
+{
+    pointer.pressed = false;
+}
+
 bool IsHovered(Rectangle rect)
 {
     return CheckCollisionPointRec(GetMousePosition(), rect);
@@ -16,7 +47,12 @@ bool IsHovered(Rectangle rect)
 
 bool IsClicked(Rectangle rect)
 {
-    return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsHovered(rect);
+    return IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && IsHovered(rect) && IsPressStartedIn(rect);
+}
+
+bool IsConfirmPressed(Rectangle button)
+{
+    return IsKeyPressed(KEY_ENTER) || IsClicked(button);
 }
 
 void DrawButton(const Assets &assets, Rectangle rect, const char *label, bool gold)
@@ -24,7 +60,7 @@ void DrawButton(const Assets &assets, Rectangle rect, const char *label, bool go
     const BoxImage *image = gold ? &assets.goldButtonNormal : &assets.buttonNormal;
     if (IsHovered(rect))
     {
-        bool held = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+        bool held = IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsPressStartedIn(rect);
         if (gold)
         {
             image = held ? &assets.goldButtonPressed : &assets.goldButtonHover;
@@ -53,7 +89,7 @@ void DrawHealthBar(const Assets &assets, Vector2 center, float width, int hp, in
     DrawBox(assets.healthFrame, frame, WHITE);
 
     Rectangle channel{frame.x + 3 * uiScale, frame.y + 3 * uiScale, frame.width - 6 * uiScale, frame.height - 7 * uiScale};
-    float filled = channel.width * hp / maxHp;
+    float filled = maxHp > 0 ? channel.width * std::clamp(hp, 0, maxHp) / maxHp : 0.0f;
     DrawStrip(assets.healthFill, {5, 7, 38, 1}, {channel.x, channel.y, filled, uiScale}, WHITE);
     DrawStrip(assets.healthFill, {5, 8, 38, 1}, {channel.x, channel.y + uiScale, filled, channel.height - uiScale}, WHITE);
 
@@ -63,7 +99,7 @@ void DrawHealthBar(const Assets &assets, Vector2 center, float width, int hp, in
 
 void DrawNumber(const Assets &assets, int value, Vector2 center, float scale, Color tint)
 {
-    const char *text = TextFormat("%d", value);
+    const char *text = TextFormat("%d", std::max(0, value));
     int count = TextLength(text);
     float step = 11.0f * scale;
     float x = center.x - step * (count - 1) / 2.0f;
@@ -99,4 +135,14 @@ void DrawBottomShade(float top)
     Color clear{shadeColor.r, shadeColor.g, shadeColor.b, 0};
     Color dark{shadeColor.r, shadeColor.g, shadeColor.b, 210};
     DrawRectangleGradientV(0, static_cast<int>(top), screenWidth, static_cast<int>(screenHeight - top), clear, dark);
+}
+
+void DrawSceneBackdrop(const Assets &assets, Texture2D background, unsigned char shade, const char *title, float titleY)
+{
+    DrawBackground(background, WHITE);
+    DrawScreenShade(shade);
+    if (title != nullptr)
+    {
+        DrawTextOutlined(assets.font, title, {screenWidth / 2.0f, titleY}, titleText, goldColor);
+    }
 }

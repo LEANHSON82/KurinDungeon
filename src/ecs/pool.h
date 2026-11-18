@@ -66,8 +66,18 @@ template <class T>
 class Pool final : public SparseSet
 {
 public:
+    // Adds a component the entity must not have yet.
     template <class... Args>
     T &Emplace(Entity entity, Args &&...args)
+    {
+        assert(!Has(entity) && "Entity already has this component; use EmplaceOrReplace");
+        Insert(entity);
+        data.push_back(T{std::forward<Args>(args)...});
+        return data.back();
+    }
+
+    template <class... Args>
+    T &EmplaceOrReplace(Entity entity, Args &&...args)
     {
         if (Has(entity))
         {
@@ -75,9 +85,7 @@ public:
             component = T{std::forward<Args>(args)...};
             return component;
         }
-        Insert(entity);
-        data.push_back(T{std::forward<Args>(args)...});
-        return data.back();
+        return Emplace(entity, std::forward<Args>(args)...);
     }
 
     T &Get(Entity entity)

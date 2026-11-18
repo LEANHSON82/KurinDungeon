@@ -16,6 +16,7 @@ void DrawMapScene(const ecs::Registry &registry);
 
 void SetupBattleScene(ecs::Registry &registry);
 void TeardownBattleScene(ecs::Registry &registry);
+void UpdateBattleScene(ecs::Registry &registry, float deltaTime);
 void BattleInputSystem(ecs::Registry &registry);
 void DrawBattleScene(const ecs::Registry &registry);
 

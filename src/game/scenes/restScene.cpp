@@ -22,9 +22,9 @@ static Rectangle GetRestButton()
 
 void UpdateRestScene(ecs::Registry &registry)
 {
-    if (IsKeyPressed(KEY_ENTER) || IsClicked(GetRestButton()))
+    if (IsConfirmPressed(GetRestButton()))
     {
-        PushRunCommand(registry, {RunCommandType::TakeRest, ecs::nullEntity, 0, 0});
+        PushRunCommand(registry, TakeRestCommand());
     }
 }
 
@@ -33,15 +33,12 @@ void DrawRestScene(const ecs::Registry &registry)
     const Assets &assets = registry.Resource<Assets>();
     const Health &health = registry.Get<Health>(registry.Resource<RunState>().player);
 
-    DrawBackground(assets.mapBackground, WHITE);
-    DrawScreenShade(120);
-    DrawTextOutlined(assets.font, "Rest", {screenWidth / 2.0f, headerY}, titleText, goldColor);
+    DrawSceneBackdrop(assets, assets.mapBackground, 120, "Rest");
 
     Rectangle panel = GetPanel();
     DrawPanel(assets, panel);
     const SpriteSheet &idle = assets.knight.idle;
-    int frame = static_cast<int>(GetTime() / animationFrameTime) % idle.frameCount;
-    DrawSprite(idle, frame, {screenWidth / 2.0f - 110.0f, panel.y + 320.0f}, false, WHITE);
+    DrawSprite(idle, GetLoopFrame(idle, GetTime()), {screenWidth / 2.0f - 110.0f, panel.y + 320.0f}, false, WHITE);
     DrawIcon(assets.restRoom, {screenWidth / 2.0f + 110.0f, panel.y + 270.0f}, uiScale, WHITE);
 
     DrawIcon(assets.heartIcon, {screenWidth / 2.0f - 90.0f, panel.y + 430.0f}, uiScale, WHITE);

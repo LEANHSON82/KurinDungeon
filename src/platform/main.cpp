@@ -3,6 +3,9 @@
 #include "game/game.h"
 #include "game/gameConfig.h"
 
+// Longest frame step the game simulates; longer pauses (loading, window drags) are clamped.
+static constexpr float maxFrameTime = 0.05f;
+
 static Rectangle GetViewport()
 {
     float scale = std::min(GetScreenWidth() / static_cast<float>(screenWidth),
@@ -14,7 +17,8 @@ static Rectangle GetViewport()
 
 int main()
 {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    // Frame rate is capped by SetTargetFPS only; adding VSync on top judders on high refresh screens.
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Kurin");
     MaximizeWindow();
     InitAudioDevice();
@@ -22,17 +26,24 @@ int main()
     SetTargetFPS(60);
 
     RenderTexture2D canvas = LoadRenderTexture(screenWidth, screenHeight);
-    SetTextureFilter(canvas.texture, TEXTURE_FILTER_BILINEAR);
+    int canvasFilter = -1;
     {
         Game game;
         while (!WindowShouldClose() && !game.ShouldQuit())
         {
             Rectangle viewport = GetViewport();
             float scale = viewport.width / screenWidth;
+            // Nearest keeps pixel art crisp when enlarging; bilinear avoids shimmer when shrinking.
+            int filter = scale >= 1.0f ? TEXTURE_FILTER_POINT : TEXTURE_FILTER_BILINEAR;
+            if (filter != canvasFilter)
+            {
+                SetTextureFilter(canvas.texture, filter);
+                canvasFilter = filter;
+            }
             SetMouseOffset(static_cast<int>(-viewport.x), static_cast<int>(-viewport.y));
             SetMouseScale(1.0f / scale, 1.0f / scale);
 
-            game.Update(GetFrameTime());
+            game.Update(std::min(GetFrameTime(), maxFrameTime));
 
             BeginTextureMode(canvas);
             ClearBackground(BLACK);

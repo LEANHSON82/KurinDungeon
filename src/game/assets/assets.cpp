@@ -1,14 +1,63 @@
 #include "game/assets/assets.h"
+#include <algorithm>
+#include <iterator>
+#include <string>
 
-static const char *ResourcePath(const char *file)
+static constexpr int fontSize = 20;
+static constexpr int spriteFrameWidth = 100;
+
+// Same order as CardId.
+static const char *const cardArtFiles[]{
+    "images/icons/spells/199_power_strike.png",
+    "images/icons/spells/112_holy_shield.png",
+    "images/icons/spells/208_finishing_blow.png",
+    "images/icons/spells/200_whirlwind.png",
+};
+static_assert(std::size(cardArtFiles) == cardCount, "Every CardId needs card art");
+
+struct EnemySpriteFiles
 {
-    return TextFormat("%sresources/%s", GetApplicationDirectory(), file);
+    const char *character;
+    bool hasBlock;
+};
+
+// Same order as EnemyId.
+static const EnemySpriteFiles enemySpriteFiles[]{
+    {"slime", false},
+    {"armored_orc", true},
+    {"necromancer", false},
+};
+static_assert(std::size(enemySpriteFiles) == enemyCount, "Every EnemyId needs sprites");
+
+static std::string ResourcePath(const std::string &file)
+{
+    return std::string(GetApplicationDirectory()) + "resources/" + file;
 }
 
-static Texture2D LoadGameTexture(Assets &assets, const char *file)
+static bool CheckFile(Assets &assets, const std::string &path)
 {
-    Texture2D texture = LoadTexture(ResourcePath(file));
-    SetTextureFilter(texture, TEXTURE_FILTER_POINT);
+    if (FileExists(path.c_str()))
+    {
+        return true;
+    }
+    TraceLog(LOG_WARNING, "Missing asset: %s", path.c_str());
+    assets.missingFiles++;
+    return false;
+}
+
+static Texture2D LoadGameTexture(Assets &assets, const std::string &file, int filter = TEXTURE_FILTER_POINT)
+{
+    std::string path = ResourcePath(file);
+    if (!CheckFile(assets, path))
+    {
+        return Texture2D{};
+    }
+    Texture2D texture = LoadTexture(path.c_str());
+    if (filter == TEXTURE_FILTER_TRILINEAR)
+    {
+        GenTextureMipmaps(&texture);
+    }
+    SetTextureFilter(texture, filter);
     assets.textures.push_back(texture);
     return texture;
 }
@@ -23,9 +72,14 @@ static BoxImage LoadBox(Assets &assets, const char *file, Rectangle part, float 
     return box;
 }
 
-static Texture2D LoadSilhouette(Assets &assets, const char *file)
+static Texture2D LoadSilhouette(Assets &assets, const std::string &file)
 {
-    Image image = LoadImage(ResourcePath(file));
+    std::string path = ResourcePath(file);
+    if (!CheckFile(assets, path))
+    {
+        return Texture2D{};
+    }
+    Image image = LoadImage(path.c_str());
     ImageColorBrightness(&image, 255);
     Texture2D texture = LoadTextureFromImage(image);
     UnloadImage(image);
@@ -36,10 +90,12 @@ static Texture2D LoadSilhouette(Assets &assets, const char *file)
 
 static SpriteSheet LoadSheet(Assets &assets, const char *character, const char *animation)
 {
+    std::string folder = std::string("images/characters/") + character + "/";
     SpriteSheet sheet;
-    sheet.texture = LoadGameTexture(assets, TextFormat("images/characters/%s/shadow/%s.png", character, animation));
-    sheet.silhouette = LoadSilhouette(assets, TextFormat("images/characters/%s/%s.png", character, animation));
-    sheet.frameCount = sheet.texture.width / 100;
+    sheet.texture = LoadGameTexture(assets, folder + "shadow/" + animation + ".png");
+    sheet.silhouette = LoadSilhouette(assets, folder + animation + ".png");
+    // At least one frame, so a missing file never causes a division by zero.
+    sheet.frameCount = std::max(1, sheet.texture.width / spriteFrameWidth);
     return sheet;
 }
 
@@ -57,21 +113,26 @@ static CharacterSprites LoadCharacter(Assets &assets, const char *character, con
     return sprites;
 }
 
-static Font LoadPixelFont(const char *file, int size)
+static Font LoadPixelFont(Assets &assets, const char *file, int size)
 {
-    Font font = LoadFontEx(ResourcePath(file), size, nullptr, 0);
+    std::string path = ResourcePath(file);
+    if (!CheckFile(assets, path))
+    {
+        return GetFontDefault();
+    }
+    Font font = LoadFontEx(path.c_str(), size, nullptr, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_POINT);
     return font;
 }
 
 static Sound LoadOptionalSound(const char *file)
 {
-    const char *path = ResourcePath(file);
-    if (!FileExists(path))
+    std::string path = ResourcePath(file);
+    if (!FileExists(path.c_str()))
     {
         return Sound{};
     }
-    return LoadSound(path);
+    return LoadSound(path.c_str());
 }
 
 static void UnloadOptionalSound(Sound &sound)
@@ -84,19 +145,18 @@ static void UnloadOptionalSound(Sound &sound)
 
 void LoadAssets(Assets &assets)
 {
-    assets.font = LoadPixelFont("fonts/jersey10.ttf", fontSize);
-    if (FileExists(ResourcePath("images/branding/kurin-logo.png")))
-    {
-        assets.logo = LoadGameTexture(assets, "images/branding/kurin-logo.png");
-    }
+    assets.font = LoadPixelFont(assets, "fonts/jersey10.ttf", fontSize);
+    // The logo is a large painting shown scaled down, not pixel art.
+    assets.logo = LoadGameTexture(assets, "images/branding/kurin-logo.png", TEXTURE_FILTER_TRILINEAR);
 
     assets.battleBackground = LoadGameTexture(assets, "images/backgrounds/dungeon.png");
     assets.mapBackground = LoadGameTexture(assets, "images/backgrounds/graveyard.png");
 
     assets.knight = LoadCharacter(assets, "knight", "attack01", true);
-    assets.slime = LoadCharacter(assets, "slime", "attack01", false);
-    assets.armoredOrc = LoadCharacter(assets, "armored_orc", "attack01", true);
-    assets.necromancer = LoadCharacter(assets, "necromancer", "attack01", false);
+    for (int i = 0; i < enemyCount; i++)
+    {
+        assets.enemySprites[i] = LoadCharacter(assets, enemySpriteFiles[i].character, "attack01", enemySpriteFiles[i].hasBlock);
+    }
 
     assets.heartIcon = LoadGameTexture(assets, "images/ui/mini_icons/Icon_03.png");
     assets.shieldIcon = LoadGameTexture(assets, "images/ui/mini_icons/Icon_10.png");
@@ -107,17 +167,13 @@ void LoadAssets(Assets &assets)
     {
         assets.digits[i] = LoadGameTexture(assets, TextFormat("images/icons/base/%03d_number_%d.png", 201 + i, i));
     }
-
-    assets.strikeArt = LoadGameTexture(assets, "images/icons/spells/199_power_strike.png");
-    assets.defendArt = LoadGameTexture(assets, "images/icons/spells/112_holy_shield.png");
-    assets.heavyStrikeArt = LoadGameTexture(assets, "images/icons/spells/208_finishing_blow.png");
-    assets.cleaveArt = LoadGameTexture(assets, "images/icons/spells/200_whirlwind.png");
+    for (int i = 0; i < cardCount; i++)
+    {
+        assets.cardArt[i] = LoadGameTexture(assets, cardArtFiles[i]);
+    }
 
     assets.startRoom = LoadGameTexture(assets, "images/icons/base/276_home.png");
     assets.restRoom = LoadGameTexture(assets, "images/icons/base/141_fire.png");
-    assets.openSlot = LoadGameTexture(assets, "images/ui/item_slots/Slot_01_Empty.png");
-    assets.lockedSlot = LoadGameTexture(assets, "images/ui/item_slots/Slot_02_Empty.png");
-    assets.currentSlot = LoadGameTexture(assets, "images/ui/item_slots/Slot_03_Empty.png");
 
     assets.darkBox = LoadBox(assets, "images/ui/background_boxes/BGbox_01B.png", {6, 6, 36, 36}, 10, 10);
     assets.buttonNormal = LoadBox(assets, "images/ui/buttons/Button_01A_Normal.png", {0, 0, 48, 16}, 5, 7);
@@ -143,6 +199,11 @@ void LoadAssets(Assets &assets)
     assets.block = LoadOptionalSound("sounds/block.wav");
     assets.victory = LoadOptionalSound("sounds/victory.wav");
     assets.defeat = LoadOptionalSound("sounds/defeat.wav");
+
+    if (assets.missingFiles > 0)
+    {
+        TraceLog(LOG_WARNING, "%d asset files are missing. Copy the purchased assets into resources/ (see .gitignore).", assets.missingFiles);
+    }
 }
 
 void UnloadAssets(Assets &assets)
@@ -164,16 +225,7 @@ void UnloadAssets(Assets &assets)
 
 const CharacterSprites &GetEnemySprites(const Assets &assets, EnemyId id)
 {
-    switch (id)
-    {
-    case EnemyId::Slime:
-        return assets.slime;
-    case EnemyId::Guardian:
-        return assets.armoredOrc;
-    case EnemyId::Warden:
-        return assets.necromancer;
-    }
-    return assets.slime;
+    return assets.enemySprites[static_cast<int>(id)];
 }
 
 const SpriteSheet &GetAnimation(const CharacterSprites &sprites, AnimationType type)
@@ -201,18 +253,7 @@ const SpriteSheet &GetAnimation(const CharacterSprites &sprites, AnimationType t
 
 Texture2D GetCardArt(const Assets &assets, CardId id)
 {
-    switch (id)
-    {
-    case CardId::Strike:
-        return assets.strikeArt;
-    case CardId::Defend:
-        return assets.defendArt;
-    case CardId::HeavyStrike:
-        return assets.heavyStrikeArt;
-    case CardId::Cleave:
-        return assets.cleaveArt;
-    }
-    return assets.strikeArt;
+    return assets.cardArt[static_cast<int>(id)];
 }
 
 Texture2D GetIntentIcon(const Assets &assets, IntentType type)

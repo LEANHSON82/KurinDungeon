@@ -22,6 +22,7 @@ inline std::size_t NextTypeId()
 template <class T>
 std::size_t TypeId()
 {
+    static_assert(std::is_same_v<T, std::remove_cv_t<T>>, "Use the plain component type, without const");
     static const std::size_t id = NextTypeId();
     return id;
 }
@@ -56,6 +57,10 @@ public:
         return result;
     }
 
+    // The callback may destroy or change the current entity. It must not remove
+    // components of OTHER entities that are in this view: swap-and-pop moves
+    // storage and the references passed to the callback would dangle. Collect
+    // such entities and destroy them after Each returns.
     template <class F>
     void Each(F &&function) const
     {
@@ -157,6 +162,13 @@ public:
     {
         assert(Valid(entity));
         return Assure<T>().Emplace(entity, std::forward<Args>(args)...);
+    }
+
+    template <class T, class... Args>
+    T &EmplaceOrReplace(Entity entity, Args &&...args)
+    {
+        assert(Valid(entity));
+        return Assure<T>().EmplaceOrReplace(entity, std::forward<Args>(args)...);
     }
 
     template <class T>

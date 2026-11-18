@@ -35,7 +35,7 @@ void LogBattle(const ecs::Registry &registry, const char *label)
 {
     const BattleState &battle = registry.Resource<BattleState>();
     ecs::Entity player = GetPlayer(registry);
-    Log(LogLevel::Info,
+    Log(LogLevel::Debug,
              "%s | Turn %d | %s | Player HP %d Block %d | Energy %d | Draw %d | Hand %d | Discard %d",
              label, battle.turn, GetResultName(battle.result),
              registry.Get<Health>(player).hp, registry.Get<Block>(player).value, battle.energy,
@@ -47,7 +47,7 @@ void LogBattle(const ecs::Registry &registry, const char *label)
     {
         const Enemy &enemy = registry.Get<Enemy>(entity);
         const Intent &intent = registry.Get<Intent>(entity);
-        Log(LogLevel::Info, "    Enemy %d %s | HP %d Block %d Strength %d | Intent %s %d",
+        Log(LogLevel::Debug, "    Enemy %d %s | HP %d Block %d Strength %d | Intent %s %d",
                  enemy.slot, GetEnemyDefinition(enemy.id).name, registry.Get<Health>(entity).hp,
                  registry.Get<Block>(entity).value, registry.Get<Strength>(entity).value,
                  GetIntentName(intent.type), intent.value);

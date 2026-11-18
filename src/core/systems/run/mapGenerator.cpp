@@ -167,7 +167,7 @@ ecs::Entity GenerateMap(ecs::Registry &registry, std::uint32_t seed)
     }
 
     builder.AssignRooms(rng);
-    registry.Emplace<Encounter>(boss, std::vector<EnemyId>{EnemyId::Warden});
+    registry.Emplace<Encounter>(boss, std::vector<EnemyId>{bossEnemy});
     return start;
 }
 

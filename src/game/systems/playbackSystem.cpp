@@ -6,13 +6,14 @@
 #include "game/state/battleView.h"
 #include "game/systems/animationSystem.h"
 #include "game/systems/floatingTextSystem.h"
+#include "game/ui/style.h"
 
-static const float eventGap = 0.35f;
-static const float textHeight = 110.0f;
+static constexpr float eventGap = 0.35f;
+static constexpr float textHeight = 110.0f;
 
-static const Color damageColor{230, 69, 57, 255};
-static const Color blockColor{146, 232, 192, 255};
-static const Color buffColor{255, 238, 131, 255};
+static constexpr Color damageColor = redColor;
+static constexpr Color blockColor = tealColor;
+static constexpr Color buffColor = goldColor;
 
 static void Animate(ecs::Registry &registry, ecs::Entity actor, AnimationType type)
 {

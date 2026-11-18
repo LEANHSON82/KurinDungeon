@@ -8,6 +8,7 @@ ecs::Entity SpawnPlayer(ecs::Registry &registry)
     ecs::Entity player = registry.Create();
     registry.Emplace<Player>(player);
     registry.Emplace<Health>(player, startingHp, startingHp);
+    registry.Emplace<RunScoped>(player);
     return player;
 }
 
@@ -15,17 +16,13 @@ ecs::Entity SpawnDeckCard(ecs::Registry &registry, CardId id)
 {
     ecs::Entity card = registry.Create();
     registry.Emplace<DeckCard>(card, id);
+    registry.Emplace<RunScoped>(card);
     return card;
 }
 
 void SpawnStartingDeck(ecs::Registry &registry)
 {
-    const CardId startingDeck[]{
-        CardId::Strike, CardId::Strike, CardId::Strike, CardId::Strike, CardId::Strike,
-        CardId::Defend, CardId::Defend, CardId::Defend, CardId::Defend,
-        CardId::HeavyStrike,
-    };
-    for (CardId id : startingDeck)
+    for (CardId id : GetStartingDeck())
     {
         SpawnDeckCard(registry, id);
     }
@@ -42,6 +39,7 @@ ecs::Entity SpawnEnemy(ecs::Registry &registry, EnemyId id, int slot)
     registry.Emplace<Strength>(enemy);
     registry.Emplace<Intent>(enemy);
     registry.Emplace<BattleScoped>(enemy);
+    registry.Emplace<RunScoped>(enemy);
     if (definition.bossAbility)
     {
         registry.Emplace<BossAbility>(enemy);
@@ -54,5 +52,6 @@ ecs::Entity SpawnRoom(ecs::Registry &registry, RoomType type, int floor, int col
     ecs::Entity room = registry.Create();
     registry.Emplace<Room>(room, type, floor, column);
     registry.Emplace<RoomLinks>(room);
+    registry.Emplace<RunScoped>(room);
     return room;
 }

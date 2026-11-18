@@ -17,28 +17,28 @@
 #include "game/ui/text.h"
 #include "game/ui/widget.h"
 
-static const float barWidth = 216.0f;
-static const float statIconGap = 6.0f;
-static const float intentBannerWidth = 216.0f;
-static const float intentBannerHeight = 96.0f;
-static const float intentIconOffset = 28.0f;
-static const float intentValueOffset = 32.0f;
-static const float pileInset = 430.0f;
-static const float pileLabelOffset = 36.0f;
-static const float pileCountOffset = 24.0f;
-static const float tooltipGap = 12.0f;
-static const float floorShadeTop = 560.0f;
-static const float turnLabelY = 54.0f;
-static const float resultY = 400.0f;
+static constexpr float barWidth = 216.0f;
+static constexpr float statIconGap = 6.0f;
+static constexpr float intentBannerWidth = 216.0f;
+static constexpr float intentBannerHeight = 96.0f;
+static constexpr float intentIconOffset = 28.0f;
+static constexpr float intentValueOffset = 32.0f;
+static constexpr float pileInset = 430.0f;
+static constexpr float pileLabelOffset = 36.0f;
+static constexpr float pileCountOffset = 24.0f;
+static constexpr float tooltipGap = 12.0f;
+static constexpr float floorShadeTop = 560.0f;
+static constexpr float turnLabelY = 54.0f;
+static constexpr float resultY = 400.0f;
 
 static Color GetCardColor(const Card &card)
 {
-    for (const Effect &effect : card.effects)
+    switch (card.kind)
     {
-        if (effect.type == EffectType::Block)
-        {
-            return blockOutline;
-        }
+    case CardKind::Attack:
+        return damageOutline;
+    case CardKind::Skill:
+        return blockOutline;
     }
     return damageOutline;
 }

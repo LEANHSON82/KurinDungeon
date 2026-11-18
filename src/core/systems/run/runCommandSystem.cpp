@@ -1,5 +1,6 @@
 #include "core/systems/run/runCommandSystem.h"
 #include <algorithm>
+#include <cassert>
 #include "core/components/combat.h"
 #include "core/components/map.h"
 #include "core/log.h"
@@ -9,15 +10,43 @@
 #include "core/systems/battle/battleSetup.h"
 #include "core/systems/run/mapGenerator.h"
 #include "core/systems/run/mapRules.h"
+#include "core/systems/run/rewardRules.h"
 
 static void Emit(ecs::Registry &registry, RunEventType event)
 {
     registry.Resource<RunEvents>().pending.push_back(event);
 }
 
+static constexpr int mapAttempts = 16;
+
+static void DestroyAll(ecs::Registry &registry, const std::vector<ecs::Entity> &entities)
+{
+    for (ecs::Entity entity : entities)
+    {
+        registry.Destroy(entity);
+    }
+}
+
+static ecs::Entity GenerateValidMap(ecs::Registry &registry, std::uint32_t seed)
+{
+    for (int attempt = 0; attempt < mapAttempts; attempt++)
+    {
+        std::uint32_t mapSeed = seed + static_cast<std::uint32_t>(attempt);
+        ecs::Entity start = GenerateMap(registry, mapSeed);
+        if (ValidateMap(registry))
+        {
+            return start;
+        }
+        Log(LogLevel::Warning, "Map check failed for seed %u, trying again", static_cast<unsigned>(mapSeed));
+        DestroyAll(registry, registry.View<Room>().Collect());
+    }
+    assert(false && "Could not generate a valid map");
+    return GenerateMap(registry, seed);
+}
+
 static void StartRun(ecs::Registry &registry, std::uint32_t seed)
 {
-    registry.Clear();
+    DestroyAll(registry, registry.View<RunScoped>().Collect());
     registry.Resource<BattleState>() = BattleState{};
 
     RunState &run = registry.Resource<RunState>();
@@ -26,11 +55,7 @@ static void StartRun(ecs::Registry &registry, std::uint32_t seed)
     run.rng.seed(seed);
     Log(LogLevel::Info, "Run seed: %u", static_cast<unsigned>(seed));
 
-    run.currentRoom = GenerateMap(registry, seed);
-    if (!ValidateMap(registry))
-    {
-        Log(LogLevel::Warning, "Map check failed for seed %u", static_cast<unsigned>(seed));
-    }
+    run.currentRoom = GenerateValidMap(registry, seed);
 
     run.player = SpawnPlayer(registry);
     SpawnStartingDeck(registry);

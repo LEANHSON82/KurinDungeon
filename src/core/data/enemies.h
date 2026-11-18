@@ -1,11 +1,16 @@
 #pragma once
 
+// Keep in the same order as the table in enemies.cpp.
 enum class EnemyId
 {
     Slime,
     Guardian,
     Warden,
+    Count,
 };
+
+inline constexpr int enemyCount = static_cast<int>(EnemyId::Count);
+inline constexpr EnemyId bossEnemy = EnemyId::Warden;
 
 struct EnemyDefinition
 {

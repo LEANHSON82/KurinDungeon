@@ -16,16 +16,18 @@
 #include "game/ui/text.h"
 #include "game/ui/widget.h"
 
-static const float roomRadius = 48.0f;
-static const float floorGap = 112.0f;
-static const float columnGap = 170.0f;
-static const float bottomY = 1000.0f;
-static const float mapCenterX = 900.0f;
+static constexpr float roomRadius = 48.0f;
+static constexpr float floorGap = 112.0f;
+static constexpr float columnGap = 170.0f;
+static constexpr float bottomY = 1000.0f;
+static constexpr float mapCenterX = 900.0f;
 
-static const Rectangle paperRect{460.0f, 24.0f, 880.0f, 1032.0f};
-static const Rectangle legendRect{1420.0f, 300.0f, 400.0f, 420.0f};
-static const Color walkedColor{173, 47, 69, 255};
-static const Color goldRing{240, 181, 65, 255};
+static constexpr Rectangle paperRect{460.0f, 24.0f, 880.0f, 1032.0f};
+static constexpr Rectangle legendRect{1420.0f, 300.0f, 400.0f, 420.0f};
+static constexpr Color walkedColor{173, 47, 69, 255};
+static constexpr Color goldRing{240, 181, 65, 255};
+static constexpr Color clearedTint{170, 150, 150, 200};
+static constexpr Color lockedTint{150, 140, 150, 110};
 
 void LayoutMapScene(ecs::Registry &registry)
 {
@@ -53,7 +55,7 @@ void LayoutMapScene(ecs::Registry &registry)
         const Room &room = registry.Get<Room>(entity);
         float x = mapCenterX + (room.column - middleColumn) * columnGap;
         float y = bottomY - (room.floor + 1) * floorGap;
-        registry.Emplace<MapPosition>(entity, Vector2{x, y});
+        registry.EmplaceOrReplace<MapPosition>(entity, Vector2{x, y});
 
         if (room.IsOnGrid() && room.floor == 0)
         {
@@ -256,11 +258,11 @@ static void DrawRooms(const ecs::Registry &registry, const Assets &assets, ecs::
         else if (registry.Has<Cleared>(entity))
         {
             DrawRing(position, roomRadius - 6.0f, roomRadius, 0.0f, 360.0f, 32, walkedColor);
-            DrawRoomIcon(assets, room.type, position, 1.0f, Color{170, 150, 150, 200});
+            DrawRoomIcon(assets, room.type, position, 1.0f, clearedTint);
         }
         else
         {
-            DrawRoomIcon(assets, room.type, position, 0.9f, Color{150, 140, 150, 110});
+            DrawRoomIcon(assets, room.type, position, 0.9f, lockedTint);
         }
     });
 }
@@ -305,7 +307,7 @@ void UpdateMapScene(ecs::Registry &registry)
     ecs::Entity room = GetVisitableRoomAtMouse(registry);
     if (!room.IsNull() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        PushRunCommand(registry, {RunCommandType::EnterRoom, room, 0, 0});
+        PushRunCommand(registry, EnterRoomCommand(room));
     }
 }
 

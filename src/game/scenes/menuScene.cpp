@@ -25,7 +25,7 @@ static Rectangle GetExitButton()
 
 void UpdateMenuScene(ecs::Registry &registry)
 {
-    if (IsKeyPressed(KEY_ENTER) || IsClicked(GetPlayButton()))
+    if (IsConfirmPressed(GetPlayButton()))
     {
         RequestScene(registry, Scene::CharacterSelect);
     }
@@ -38,8 +38,7 @@ void UpdateMenuScene(ecs::Registry &registry)
 void DrawMenuScene(const ecs::Registry &registry)
 {
     const Assets &assets = registry.Resource<Assets>();
-    DrawBackground(assets.battleBackground, WHITE);
-    DrawScreenShade(120);
+    DrawSceneBackdrop(assets, assets.battleBackground, 120);
     DrawTextOutlined(assets.font, "KURIN", {screenWidth / 2.0f, 340.0f}, logoText, goldColor);
     DrawTextOutlined(assets.font, "A dungeon deckbuilder", {screenWidth / 2.0f, 460.0f}, bigText, peachColor);
     DrawPanel(assets, GetPanel());

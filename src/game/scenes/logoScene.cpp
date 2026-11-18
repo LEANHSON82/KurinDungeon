@@ -7,7 +7,7 @@
 #include "game/ui/style.h"
 #include "game/ui/text.h"
 
-static const float logoDuration = 3.0f;
+static constexpr float logoDuration = 3.0f;
 
 void UpdateLogoScene(ecs::Registry &registry)
 {

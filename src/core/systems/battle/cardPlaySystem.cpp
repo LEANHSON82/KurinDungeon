@@ -10,6 +10,7 @@ static std::vector<ecs::Entity> GetTargets(const ecs::Registry &registry, const 
     switch (card.target)
     {
     case Target::Self:
+        targets.push_back(GetPlayer(registry));
         break;
     case Target::SingleEnemy:
         targets.push_back(target);
@@ -44,13 +45,16 @@ bool PlayCard(ecs::Registry &registry, ecs::Entity card, ecs::Entity target)
         switch (effect.type)
         {
         case EffectType::Damage:
-            for (ecs::Entity enemy : targets)
+            for (ecs::Entity entity : targets)
             {
-                DealDamage(registry, player, enemy, effect.value);
+                DealDamage(registry, player, entity, effect.value);
             }
             break;
         case EffectType::Block:
-            GainBlock(registry, player, player, effect.value);
+            for (ecs::Entity entity : targets)
+            {
+                GainBlock(registry, player, entity, effect.value);
+            }
             break;
         }
     }

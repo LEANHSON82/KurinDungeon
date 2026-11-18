@@ -5,6 +5,7 @@
 #include "game/scenes/battle/battleLayout.h"
 #include "game/scenes/scenes.h"
 #include "game/state/battleView.h"
+#include "game/systems/playbackSystem.h"
 
 void SetupBattleScene(ecs::Registry &registry)
 {
@@ -26,10 +27,23 @@ void SetupBattleScene(ecs::Registry &registry)
     registry.Resource<Playback>() = Playback{};
 }
 
+void UpdateBattleScene(ecs::Registry &registry, float deltaTime)
+{
+    PlaybackSystem(registry, deltaTime);
+    if (!IsPlayingBack(registry))
+    {
+        BattleInputSystem(registry);
+    }
+}
+
 void TeardownBattleScene(ecs::Registry &registry)
 {
-    registry.RemoveAll<Position>();
-    registry.RemoveAll<Sprite>();
-    registry.RemoveAll<Animator>();
+    // Only strip the visuals this scene attached to actors.
+    for (ecs::Entity actor : registry.View<Sprite>().Collect())
+    {
+        registry.Remove<Position>(actor);
+        registry.Remove<Sprite>(actor);
+        registry.Remove<Animator>(actor);
+    }
     registry.Resource<BattleUi>() = BattleUi{};
 }

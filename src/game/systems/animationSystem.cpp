@@ -28,10 +28,23 @@ void AnimationSystem(ecs::Registry &registry, float deltaTime)
 
 int GetAnimationFrame(const Animator &animator, const SpriteSheet &sheet)
 {
+    if (sheet.frameCount <= 0)
+    {
+        return 0;
+    }
     int frame = static_cast<int>(animator.time / animationFrameTime);
     if (animator.animation == AnimationType::Idle)
     {
         return frame % sheet.frameCount;
     }
     return std::min(frame, sheet.frameCount - 1);
+}
+
+int GetLoopFrame(const SpriteSheet &sheet, double time)
+{
+    if (sheet.frameCount <= 0)
+    {
+        return 0;
+    }
+    return static_cast<int>(time / animationFrameTime) % sheet.frameCount;
 }

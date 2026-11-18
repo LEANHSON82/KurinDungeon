@@ -5,9 +5,9 @@
 #include "core/data/cards.h"
 #include "ecs/registry.h"
 
-const int startingHp = 80;
-const int restHeal = 20;
-const int rewardChoiceCount = 3;
+inline constexpr int startingHp = 80;
+inline constexpr int restHeal = 20;
+inline constexpr int rewardChoiceCount = 3;
 
 struct RunState
 {
@@ -41,6 +41,44 @@ struct RunCommands
 {
     std::vector<RunCommand> queue;
 };
+
+inline RunCommand StartRunCommand(std::uint32_t seed)
+{
+    RunCommand command;
+    command.type = RunCommandType::StartRun;
+    command.seed = seed;
+    return command;
+}
+
+inline RunCommand EnterRoomCommand(ecs::Entity room)
+{
+    RunCommand command;
+    command.type = RunCommandType::EnterRoom;
+    command.room = room;
+    return command;
+}
+
+inline RunCommand FinishBattleCommand()
+{
+    RunCommand command;
+    command.type = RunCommandType::FinishBattle;
+    return command;
+}
+
+inline RunCommand TakeRewardCommand(int choice)
+{
+    RunCommand command;
+    command.type = RunCommandType::TakeReward;
+    command.choice = choice;
+    return command;
+}
+
+inline RunCommand TakeRestCommand()
+{
+    RunCommand command;
+    command.type = RunCommandType::TakeRest;
+    return command;
+}
 
 inline void PushRunCommand(ecs::Registry &registry, RunCommand command)
 {

@@ -7,12 +7,23 @@
 #include "game/assets/assets.h"
 #include "game/scenes/scenes.h"
 #include "game/state/battleView.h"
-#include "game/systems/playbackSystem.h"
 #include "game/systems/sceneFlowSystem.h"
+#include "game/ui/widget.h"
 
 static void ForwardToTraceLog(LogLevel level, const char *message)
 {
-    TraceLog(level == LogLevel::Warning ? LOG_WARNING : LOG_INFO, "%s", message);
+    switch (level)
+    {
+    case LogLevel::Debug:
+        TraceLog(LOG_DEBUG, "%s", message);
+        break;
+    case LogLevel::Info:
+        TraceLog(LOG_INFO, "%s", message);
+        break;
+    case LogLevel::Warning:
+        TraceLog(LOG_WARNING, "%s", message);
+        break;
+    }
 }
 
 Game::Game()
@@ -71,6 +82,7 @@ void Game::ApplySceneChange()
     Scene previous = scene.current;
     scene.current = scene.next;
     scene.time = 0.0f;
+    ResetPointer();
     OnExit(previous);
     OnEnter(scene.current);
 }
@@ -92,11 +104,7 @@ void Game::UpdateScene(float deltaTime)
         UpdateMapScene(registry);
         break;
     case Scene::Battle:
-        PlaybackSystem(registry, deltaTime);
-        if (!IsPlayingBack(registry))
-        {
-            BattleInputSystem(registry);
-        }
+        UpdateBattleScene(registry, deltaTime);
         break;
     case Scene::Reward:
         UpdateRewardScene(registry);
@@ -114,6 +122,7 @@ void Game::UpdateScene(float deltaTime)
 void Game::Update(float deltaTime)
 {
     registry.Resource<SceneState>().time += deltaTime;
+    UpdatePointer();
 
     UpdateScene(deltaTime);
 

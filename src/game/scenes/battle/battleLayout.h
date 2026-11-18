@@ -5,7 +5,7 @@
 #include "ecs/registry.h"
 
 Vector2 GetPlayerFeet();
-Vector2 GetEnemyFeet(int slot, int enemyCount);
+Vector2 GetEnemyFeet(int slot, int enemiesInBattle);
 Vector2 GetInfoPoint(Vector2 feet);
 Vector2 GetIntentPoint(Vector2 feet);
 Rectangle GetActorRect(Vector2 feet);

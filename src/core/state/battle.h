@@ -4,8 +4,8 @@
 #include <vector>
 #include "ecs/registry.h"
 
-const int startingEnergy = 3;
-const int handSize = 5;
+inline constexpr int startingEnergy = 3;
+inline constexpr int handSize = 5;
 
 enum class BattleResult
 {
@@ -41,6 +41,16 @@ struct BattleCommands
 {
     std::vector<BattleCommand> queue;
 };
+
+inline BattleCommand PlayCardCommand(ecs::Entity card, ecs::Entity target)
+{
+    return {BattleCommandType::PlayCard, card, target};
+}
+
+inline BattleCommand EndTurnCommand()
+{
+    return {BattleCommandType::EndTurn, ecs::nullEntity, ecs::nullEntity};
+}
 
 inline void PushBattleCommand(ecs::Registry &registry, BattleCommand command)
 {

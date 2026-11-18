@@ -1,11 +1,10 @@
 #pragma once
+#include <array>
 #include <vector>
 #include <raylib.h>
 #include "core/components/combat.h"
 #include "core/components/map.h"
 #include "core/data/cards.h"
-
-const int fontSize = 20;
 
 enum class AnimationType
 {
@@ -49,9 +48,7 @@ struct Assets
     Texture2D mapBackground{};
 
     CharacterSprites knight;
-    CharacterSprites slime;
-    CharacterSprites armoredOrc;
-    CharacterSprites necromancer;
+    std::array<CharacterSprites, enemyCount> enemySprites;
 
     Texture2D heartIcon{};
     Texture2D shieldIcon{};
@@ -60,16 +57,10 @@ struct Assets
     Texture2D skullIcon{};
     Texture2D digits[10]{};
 
-    Texture2D strikeArt{};
-    Texture2D defendArt{};
-    Texture2D heavyStrikeArt{};
-    Texture2D cleaveArt{};
+    std::array<Texture2D, cardCount> cardArt{};
 
     Texture2D startRoom{};
     Texture2D restRoom{};
-    Texture2D openSlot{};
-    Texture2D lockedSlot{};
-    Texture2D currentSlot{};
 
     BoxImage darkBox;
     BoxImage buttonNormal;
@@ -97,6 +88,7 @@ struct Assets
     Sound defeat{};
 
     std::vector<Texture2D> textures;
+    int missingFiles = 0;
 };
 
 void LoadAssets(Assets &assets);

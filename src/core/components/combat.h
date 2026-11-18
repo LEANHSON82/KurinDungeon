@@ -50,6 +50,12 @@ struct Dead
 {
 };
 
+// Destroyed when the battle ends.
 struct BattleScoped
+{
+};
+
+// Destroyed when a new run starts.
+struct RunScoped
 {
 };

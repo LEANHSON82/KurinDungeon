@@ -8,23 +8,23 @@
 #include "game/ui/style.h"
 #include "game/ui/widget.h"
 
-static const float feetY = 590.0f;
-static const float playerX = 480.0f;
-static const float enemyCenterX = 1440.0f;
-static const float enemyGap = 240.0f;
-static const float hudTop = 780.0f;
-static const float handCenterY = 935.0f;
-static const float slotPitch = 132.0f;
-static const float slotRaise = 18.0f;
+static constexpr float feetY = 590.0f;
+static constexpr float playerX = 480.0f;
+static constexpr float enemyCenterX = 1440.0f;
+static constexpr float enemyGap = 240.0f;
+static constexpr float hudTop = 780.0f;
+static constexpr float handCenterY = 935.0f;
+static constexpr float slotPitch = 132.0f;
+static constexpr float slotRaise = 18.0f;
 
 Vector2 GetPlayerFeet()
 {
     return {playerX, feetY};
 }
 
-Vector2 GetEnemyFeet(int slot, int enemyCount)
+Vector2 GetEnemyFeet(int slot, int enemiesInBattle)
 {
-    float offset = slot - (enemyCount - 1) / 2.0f;
+    float offset = slot - (enemiesInBattle - 1) / 2.0f;
     return {enemyCenterX + offset * enemyGap, feetY};
 }
 
