@@ -5,7 +5,7 @@
 #include <utility>
 #include "ecs/Components.h"
 
-using ComponentTuple = std::tuple<CTransform, CHealth, CBlock, CStrength, CIntent, CEnemy, CBossAbility, CCard,
+using ComponentTuple = std::tuple<CTransform, CHealth, CBlock, CStatus, CIntent, CEnemy, CBossAbility, CCard,
                                   CAnimation, CActor, CFloatingText, CRoom>;
 
 class Entity

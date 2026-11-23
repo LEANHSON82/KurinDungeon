@@ -7,6 +7,13 @@ static constexpr int bossAbilityHpPercent = 50;
 static constexpr int bossAbilityBlockMultiplier = 2;
 static constexpr int lowHpDefendPercent = 30;
 static constexpr int buffEveryTurns = 3;
+static constexpr int debuffTurn = 2; // enemies that debuff do it on turns 2, 5, 8...
+
+// Weak hits deal 3/4 damage, Vulnerable targets take 3/2 damage.
+static constexpr int weakNumerator = 3;
+static constexpr int weakDenominator = 4;
+static constexpr int vulnerableNumerator = 3;
+static constexpr int vulnerableDenominator = 2;
 
 EntityVec Scene_Battle::getPile(Zone zone)
 {
@@ -105,7 +112,12 @@ static CIntent ChooseIntent(const std::shared_ptr<Entity> &enemy, int turn)
     {
         return CIntent(IntentType::Buff, definition.buff, false);
     }
-    return CIntent(IntentType::Attack, definition.damage + enemy->get<CStrength>().value, false);
+    if (definition.debuffAmount > 0 && turn % buffEveryTurns == debuffTurn)
+    {
+        return CIntent(IntentType::Debuff, definition.debuffAmount, false);
+    }
+    // The base damage only: Strength, Weak and Vulnerable are applied by modifyDamage.
+    return CIntent(IntentType::Attack, definition.damage, false);
 }
 
 void Scene_Battle::chooseEnemyIntents()
@@ -200,6 +212,19 @@ bool Scene_Battle::sPlayCard(const std::shared_ptr<Entity> &card, const std::sha
         case EffectType::LoseHp:
             loseHp(m_player, effect.value);
             break;
+        case EffectType::ApplyStatus:
+            if (data.target == Target::Self)
+            {
+                applyStatus(m_player, m_player, effect.status, effect.value);
+            }
+            for (const std::shared_ptr<Entity> &enemy : targets)
+            {
+                if (isAlive(enemy))
+                {
+                    applyStatus(m_player, enemy, effect.status, effect.value);
+                }
+            }
+            break;
         }
 
         updateResult();
@@ -239,8 +264,10 @@ void Scene_Battle::sEnemyTurn()
             gainBlock(enemy, enemy, intent.value);
             break;
         case IntentType::Buff:
-            enemy->get<CStrength>().value += intent.value;
-            pushEvent(BattleEventType::Buff, enemy, enemy, intent.value);
+            applyStatus(enemy, enemy, StatusType::Strength, intent.value);
+            break;
+        case IntentType::Debuff:
+            applyStatus(enemy, m_player, GetEnemyDefinition(enemy->get<CEnemy>().id).debuff, intent.value);
             break;
         }
 
@@ -260,9 +287,18 @@ void Scene_Battle::sEndTurn()
     }
 
     discardHand();
+    // Statuses wear off only after the enemies have acted, so the numbers shown during the
+    // player's turn are the numbers that happen. Debuffs the enemies put on the player during
+    // their turn do not count down yet, so "Weak 2" lasts two full player turns.
+    CStatus playerBefore = m_player->get<CStatus>();
     sEnemyTurn();
     if (m_result == BattleResult::InProgress)
     {
+        tickStatuses(m_player, playerBefore);
+        for (const std::shared_ptr<Entity> &enemy : getEnemies())
+        {
+            tickStatuses(enemy, enemy->get<CStatus>());
+        }
         m_turn++;
         chooseEnemyIntents();
         startPlayerTurn();
@@ -270,9 +306,54 @@ void Scene_Battle::sEndTurn()
     logBattle("EndTurn");
 }
 
-void Scene_Battle::pushEvent(BattleEventType type, const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int value)
+void Scene_Battle::pushEvent(BattleEventType type, const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int value,
+                             StatusType status)
 {
-    m_events.push_back({type, source, target, value});
+    m_events.push_back({type, source, target, value, status});
+}
+
+int Scene_Battle::modifyDamage(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int base) const
+{
+    int numerator = 1;
+    int denominator = 1;
+    int damage = base;
+    if (source && source->has<CStatus>())
+    {
+        const CStatus &status = source->get<CStatus>();
+        damage += status.strength;
+        if (status.weak > 0)
+        {
+            numerator *= weakNumerator;
+            denominator *= weakDenominator;
+        }
+    }
+    if (target && target->has<CStatus>() && target->get<CStatus>().vulnerable > 0)
+    {
+        numerator *= vulnerableNumerator;
+        denominator *= vulnerableDenominator;
+    }
+    // Add first, multiply after, round down once at the end.
+    return std::max(0, damage) * numerator / denominator;
+}
+
+void Scene_Battle::applyStatus(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, StatusType type, int amount)
+{
+    target->get<CStatus>().add(type, amount);
+    pushEvent(BattleEventType::Status, source, target, amount, type);
+}
+
+// Takes one point off every counting-down status the entity already had at the start of the round.
+void Scene_Battle::tickStatuses(const std::shared_ptr<Entity> &entity, const CStatus &hadAtStart)
+{
+    CStatus &status = entity->get<CStatus>();
+    for (int i = 0; i < statusCount; i++)
+    {
+        StatusType type = static_cast<StatusType>(i);
+        if (GetStatusDefinition(type).countsDown && hadAtStart.amount(type) > 0 && status.amount(type) > 0)
+        {
+            status.add(type, -1);
+        }
+    }
 }
 
 void Scene_Battle::markDeadAtZeroHp(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target)
@@ -293,6 +374,7 @@ void Scene_Battle::dealDamage(const std::shared_ptr<Entity> &source, const std::
         return;
     }
 
+    amount = modifyDamage(source, target, amount);
     if (amount > 0)
     {
         int blocked = std::min(block.value, amount);

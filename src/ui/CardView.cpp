@@ -25,11 +25,11 @@ void DrawCardSlot(const Assets &assets, CardId id, Rectangle rect, bool playable
     DrawNumber(assets, card.cost, {rect.x + 12.0f, rect.y + 12.0f}, detailScale, playable ? WHITE : GRAY);
 }
 
-void DrawCardTooltip(const Assets &assets, CardId id, Vector2 bottomCenter)
+void DrawCardTooltip(const Assets &assets, CardId id, Vector2 bottomCenter, const std::function<int(int)> &damage)
 {
     const Card &card = GetCard(id);
     const Font &font = assets.getFont("Main");
-    std::string effects = DescribeEffects(card);
+    std::string effects = DescribeEffects(card, damage);
     float textWidth = MeasureTextEx(font, effects.c_str(), smallText, 0.0f).x;
     float width = std::max(tooltipMinWidth, textWidth + tooltipPadding);
     Rectangle box{bottomCenter.x - width / 2.0f, bottomCenter.y - tooltipHeight, width, tooltipHeight};

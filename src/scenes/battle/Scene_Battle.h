@@ -24,7 +24,7 @@ enum class BattleEventType
 {
     Damage,
     Block,
-    Buff,
+    Status, // a status was put on the target
     HpLoss, // HP lost without Block, e.g. from the player's own cards
     Death,
 };
@@ -35,6 +35,7 @@ struct BattleEvent
     std::shared_ptr<Entity> source;
     std::shared_ptr<Entity> target;
     int value = 0;
+    StatusType status = StatusType::Strength; // only for Status events
 };
 
 class Scene_Battle : public Scene
@@ -68,9 +69,12 @@ class Scene_Battle : public Scene
     void dealDamage(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int amount);
     void gainBlock(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int amount);
     void loseHp(const std::shared_ptr<Entity> &target, int amount);
+    void applyStatus(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, StatusType type, int amount);
+    void tickStatuses(const std::shared_ptr<Entity> &entity, const CStatus &hadAtStart);
     void markDeadAtZeroHp(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target);
     void updateResult();
-    void pushEvent(BattleEventType type, const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int value);
+    void pushEvent(BattleEventType type, const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int value,
+                   StatusType status = StatusType::Strength);
     EntityVec getTargets(const Card &card, const std::shared_ptr<Entity> &target);
     void logBattle(const std::string &label);
 
@@ -96,6 +100,7 @@ class Scene_Battle : public Scene
     Color outlineFor(const std::shared_ptr<Entity> &actor) const;
     void drawActors();
     void drawActorInfo();
+    void drawStatuses(const std::shared_ptr<Entity> &actor, Vector2 center);
     void drawFloatingTexts();
     void drawHint();
     void drawHud();
@@ -114,6 +119,9 @@ public:
     void sDrawCards(int count);
     void chooseEnemyIntents();
     bool isAlive(const std::shared_ptr<Entity> &enemy) const;
+    // The damage a hit of base damage really deals: + source Strength, -25% if the source is
+    // Weak, +50% if the target is Vulnerable (rounded down). target may be null.
+    int modifyDamage(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int base) const;
     bool isPlayingBack() const;
 
     EntityVec getPile(Zone zone);

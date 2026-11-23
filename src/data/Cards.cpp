@@ -22,6 +22,10 @@ static const Card cards[]{
     {"Battle Plan", "CardBattlePlan", CardKind::Skill, 1, Target::Self, {{EffectType::DrawCards, 2}}},
     {"Surge", "CardSurge", CardKind::Skill, 0, Target::Self, {{EffectType::GainEnergy, 2}}, exhausts},
     {"Dark Pact", "CardDarkPact", CardKind::Skill, 0, Target::Self, {{EffectType::LoseHp, 4}, {EffectType::DrawCards, 3}}, exhausts},
+    {"Crushing Blow", "CardCrushingBlow", CardKind::Attack, 2, Target::SingleEnemy,
+     {{EffectType::Damage, 8}, {EffectType::ApplyStatus, 2, StatusType::Vulnerable}}},
+    {"Menace", "CardMenace", CardKind::Skill, 1, Target::AllEnemies, {{EffectType::ApplyStatus, 1, StatusType::Weak}}},
+    {"Battle Cry", "CardBattleCry", CardKind::Power, 1, Target::Self, {{EffectType::ApplyStatus, 2, StatusType::Strength}}},
 };
 static_assert(std::size(cards) == cardCount, "Every CardId needs an entry in the cards table");
 
@@ -32,13 +36,14 @@ const Card &GetCard(CardId id)
     return cards[index];
 }
 
-static std::string DescribeEffect(const Effect &effect, Target target)
+static std::string DescribeEffect(const Effect &effect, Target target, const std::function<int(int)> &damage)
 {
     std::string value = std::to_string(effect.value);
+    const char *toAll = target == Target::AllEnemies ? " to all" : "";
     switch (effect.type)
     {
     case EffectType::Damage:
-        return "Damage " + value + (target == Target::AllEnemies ? " to all" : "");
+        return "Damage " + std::to_string(damage ? damage(effect.value) : effect.value) + toAll;
     case EffectType::Block:
         return "Block " + value;
     case EffectType::DrawCards:
@@ -47,11 +52,20 @@ static std::string DescribeEffect(const Effect &effect, Target target)
         return "+" + value + " Energy";
     case EffectType::LoseHp:
         return "Lose " + value + " HP";
+    case EffectType::ApplyStatus:
+    {
+        std::string name = GetStatusDefinition(effect.status).name;
+        if (target == Target::Self)
+        {
+            return "Gain " + value + " " + name;
+        }
+        return name + " " + value + toAll;
+    }
     }
     return "";
 }
 
-std::string DescribeEffects(const Card &card)
+std::string DescribeEffects(const Card &card, const std::function<int(int)> &damage)
 {
     std::string text;
     for (const Effect &effect : card.effects)
@@ -60,7 +74,7 @@ std::string DescribeEffects(const Card &card)
         {
             text += ", ";
         }
-        text += DescribeEffect(effect, card.target);
+        text += DescribeEffect(effect, card.target, damage);
     }
     if (card.exhaust)
     {

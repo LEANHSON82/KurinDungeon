@@ -8,6 +8,9 @@
 
 static constexpr float barWidth = 216.0f;
 static constexpr float statIconGap = 6.0f;
+static constexpr float statusRowHeight = 250.0f; // above the head, over the intent banner
+static constexpr float statusBadgeWidth = 110.0f;
+static constexpr float statusIconScale = 4.0f;
 static constexpr float intentBannerWidth = 216.0f;
 static constexpr float intentBannerHeight = 96.0f;
 static constexpr float intentIconOffset = 28.0f;
@@ -89,7 +92,7 @@ static void DrawStatIcon(const Assets &assets, const char *icon, Vector2 center,
     DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value), {center.x, center.y - smallTextNudge}, smallText, textColor);
 }
 
-static const char *IntentIcon(IntentType type)
+static const char *IntentIcon(const std::shared_ptr<Entity> &enemy, IntentType type)
 {
     switch (type)
     {
@@ -98,7 +101,9 @@ static const char *IntentIcon(IntentType type)
     case IntentType::Defend:
         return "Shield";
     case IntentType::Buff:
-        return "Star";
+        return GetStatusDefinition(StatusType::Strength).icon;
+    case IntentType::Debuff:
+        return GetStatusDefinition(GetEnemyDefinition(enemy->get<CEnemy>().id).debuff).icon;
     }
     return "Sword";
 }
@@ -108,13 +113,41 @@ static Vector2 InfoPoint(Vector2 feet)
     return {feet.x, feet.y + 46.0f};
 }
 
+// One icon and number per active status, centered over an actor's head.
+void Scene_Battle::drawStatuses(const std::shared_ptr<Entity> &actor, Vector2 center)
+{
+    const Assets &assets = m_game->assets();
+    const CStatus &status = actor->get<CStatus>();
+    std::vector<StatusType> active;
+    for (int i = 0; i < statusCount; i++)
+    {
+        if (status.amount(static_cast<StatusType>(i)) > 0)
+        {
+            active.push_back(static_cast<StatusType>(i));
+        }
+    }
+
+    float x = center.x - active.size() * statusBadgeWidth / 2.0f;
+    for (StatusType type : active)
+    {
+        DrawIcon(assets.getTexture(GetStatusDefinition(type).icon), {x + 34.0f, center.y}, statusIconScale, WHITE);
+        DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", status.amount(type)), {x + 82.0f, center.y - smallTextNudge}, smallText, textColor);
+        x += statusBadgeWidth;
+    }
+}
+
 void Scene_Battle::drawActorInfo()
 {
     const Assets &assets = m_game->assets();
-    int playerBlock = m_player->get<CBlock>().value;
-    if (!m_player->get<CActor>().fallen && playerBlock > 0)
+    if (!m_player->get<CActor>().fallen)
     {
-        DrawStatIcon(assets, "Shield", InfoPoint(m_player->get<CTransform>().pos), playerBlock);
+        Vector2 center = InfoPoint(m_player->get<CTransform>().pos);
+        if (int block = m_player->get<CBlock>().value; block > 0)
+        {
+            DrawStatIcon(assets, "Shield", center, block);
+        }
+        Vector2 feet = m_player->get<CTransform>().pos;
+        drawStatuses(m_player, {feet.x, feet.y - statusRowHeight});
     }
 
     for (const std::shared_ptr<Entity> &enemy : getEnemies())
@@ -131,10 +164,7 @@ void Scene_Battle::drawActorInfo()
         {
             DrawStatIcon(assets, "Shield", {center.x - barWidth / 2.0f - statIconGap, center.y}, block);
         }
-        if (int strength = enemy->get<CStrength>().value; strength > 0)
-        {
-            DrawStatIcon(assets, "Star", {center.x + barWidth / 2.0f + statIconGap, center.y}, strength);
-        }
+        drawStatuses(enemy, {feet.x, feet.y - statusRowHeight});
 
         if (isAlive(enemy))
         {
@@ -142,8 +172,10 @@ void Scene_Battle::drawActorInfo()
             Vector2 intentCenter{feet.x, feet.y - 180.0f};
             Rectangle banner{intentCenter.x - intentBannerWidth / 2.0f, intentCenter.y - intentBannerHeight / 2.0f, intentBannerWidth, intentBannerHeight};
             DrawBox(assets.getBox("IntentBanner"), banner, WHITE);
-            DrawIcon(assets.getTexture(IntentIcon(intent.type)), {intentCenter.x - intentIconOffset, intentCenter.y}, uiScale, WHITE);
-            DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", intent.value),
+            // An attack shows the damage it will really deal after statuses.
+            int value = intent.type == IntentType::Attack ? modifyDamage(enemy, m_player, intent.value) : intent.value;
+            DrawIcon(assets.getTexture(IntentIcon(enemy, intent.type)), {intentCenter.x - intentIconOffset, intentCenter.y}, uiScale, WHITE);
+            DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value),
                              {intentCenter.x + intentValueOffset, intentCenter.y - bigTextNudge}, bigText, textColor);
         }
     }
@@ -218,7 +250,11 @@ void Scene_Battle::drawHud()
     std::shared_ptr<Entity> shown = m_selectedCard ? m_selectedCard : cardAt(GetMousePosition());
     if (shown)
     {
-        DrawCardTooltip(assets, shown->get<CCard>().id, {screenWidth / 2.0f, HudRect().y - tooltipGap});
+        // Damage in the text includes Strength, Weak and the current target's Vulnerable.
+        const Card &card = GetCard(shown->get<CCard>().id);
+        std::shared_ptr<Entity> target = card.target == Target::SingleEnemy && isAlive(m_target) ? m_target : nullptr;
+        auto damage = [&](int base) { return modifyDamage(m_player, target, base); };
+        DrawCardTooltip(assets, shown->get<CCard>().id, {screenWidth / 2.0f, HudRect().y - tooltipGap}, damage);
     }
 }
 

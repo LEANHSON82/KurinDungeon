@@ -25,6 +25,7 @@ inline constexpr Color peachColor{255, 194, 161, 255};
 inline constexpr Color goldColor{255, 238, 131, 255};
 inline constexpr Color redColor{230, 69, 57, 255};
 inline constexpr Color tealColor{146, 232, 192, 255};
+inline constexpr Color debuffColor{196, 140, 235, 255};
 inline constexpr Color outlineColor{245, 238, 220, 220};
 inline constexpr Color damageOutline{230, 69, 57, 255};
 inline constexpr Color blockOutline{79, 164, 220, 255};

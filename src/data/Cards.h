@@ -1,7 +1,9 @@
 #pragma once
+#include <functional>
 #include <random>
 #include <string>
 #include <vector>
+#include "data/Statuses.h"
 
 // Keep in the same order as the table in Cards.cpp.
 enum class CardId
@@ -22,6 +24,9 @@ enum class CardId
     BattlePlan,
     Surge,
     DarkPact,
+    CrushingBlow,
+    Menace,
+    BattleCry,
     Count,
 };
 
@@ -42,7 +47,8 @@ enum class Target
     AllEnemies,
 };
 
-// Damage hits the card's targets. Every other effect applies to the player.
+// Damage hits the card's targets. ApplyStatus hits the card's targets too, or the player
+// when the card targets Self. Every other effect applies to the player.
 enum class EffectType
 {
     Damage,
@@ -50,12 +56,14 @@ enum class EffectType
     DrawCards,
     GainEnergy,
     LoseHp, // lost straight from HP, ignoring Block
+    ApplyStatus,
 };
 
 struct Effect
 {
     EffectType type = EffectType::Damage;
     int value = 0;
+    StatusType status = StatusType::Strength; // only used by ApplyStatus
 };
 
 struct Card
@@ -71,7 +79,9 @@ struct Card
 };
 
 const Card &GetCard(CardId id);
-std::string DescribeEffects(const Card &card);
+// damage, when given, turns a card's base damage into the number the player will really deal
+// (Strength, Weak, Vulnerable), so the text matches the result.
+std::string DescribeEffects(const Card &card, const std::function<int(int)> &damage = nullptr);
 const char *GetKindName(CardKind kind);
 
 const std::vector<CardId> &GetStartingDeck();

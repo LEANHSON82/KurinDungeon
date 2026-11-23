@@ -38,6 +38,7 @@ void Scene_Battle::spawnPlayer()
     m_player = m_entityManager.addEntity("player");
     m_player->add<CHealth>(run.hp, run.maxHp);
     m_player->add<CBlock>();
+    m_player->add<CStatus>();
     m_player->add<CTransform>(Vector2{playerX, feetY});
     m_player->add<CActor>("Knight", false);
     setAnimation(m_player, "Idle", true);
@@ -53,7 +54,7 @@ void Scene_Battle::spawnEnemies(const std::vector<EnemyId> &enemies)
         enemy->add<CEnemy>(enemies[slot], slot);
         enemy->add<CHealth>(definition.maxHp, definition.maxHp);
         enemy->add<CBlock>();
-        enemy->add<CStrength>();
+        enemy->add<CStatus>();
         enemy->add<CIntent>();
         if (definition.bossAbility)
         {

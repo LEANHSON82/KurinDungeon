@@ -65,10 +65,13 @@ void Scene_Battle::playEvent(const BattleEvent &event)
         say(event.target, "-" + std::to_string(event.value), redColor);
         assets.playSound("Hit");
         break;
-    case BattleEventType::Buff:
+    case BattleEventType::Status:
+    {
+        const StatusDefinition &status = GetStatusDefinition(event.status);
         setAnimation(event.source, "Attack", false);
-        say(event.target, "+" + std::to_string(event.value) + " Strength", goldColor);
+        say(event.target, "+" + std::to_string(event.value) + " " + status.name, status.harmful ? debuffColor : goldColor);
         break;
+    }
     case BattleEventType::Death:
         setAnimation(event.target, "Death", false);
         event.target->get<CActor>().fallen = true;

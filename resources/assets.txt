@@ -36,6 +36,8 @@ Texture Shield images/ui/mini_icons/Icon_10.png
 Texture Star images/ui/mini_icons/Icon_01.png
 Texture Sword images/ui/mini_icons/Icon_09.png
 Texture Skull images/ui/mini_icons/Icon_06.png
+Texture StatusWeak images/ui/mini_icons/Icon_02.png
+Texture StatusVulnerable images/ui/mini_icons/Icon_31.png
 Texture Digit0 images/icons/base/201_number_0.png
 Texture Digit1 images/icons/base/202_number_1.png
 Texture Digit2 images/icons/base/203_number_2.png
@@ -63,6 +65,9 @@ Texture CardBrace images/icons/spells/091_arcane_shield.png
 Texture CardBattlePlan images/icons/spells/135_ancestral_guidance.png
 Texture CardSurge images/icons/spells/160_haste.png
 Texture CardDarkPact images/icons/spells/178_blood_pact.png
+Texture CardCrushingBlow images/icons/spells/053_thunder_smash.png
+Texture CardMenace images/icons/spells/180_curse.png
+Texture CardBattleCry images/icons/spells/204_battlecry.png
 
 Texture RoomStart images/icons/base/276_home.png
 Texture RoomRest images/icons/base/141_fire.png

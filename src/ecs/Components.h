@@ -5,6 +5,7 @@
 #include <raylib.h>
 #include "data/Cards.h"
 #include "data/Enemies.h"
+#include "data/Statuses.h"
 #include "engine/Animation.h"
 
 class Entity;
@@ -35,16 +36,55 @@ struct CBlock : public Component
     int value = 0;
 };
 
-struct CStrength : public Component
+// Statuses on a player or enemy. Strength lasts the battle; Weak and Vulnerable are the
+// number of rounds left.
+struct CStatus : public Component
 {
-    int value = 0;
+    int strength = 0;
+    int weak = 0;
+    int vulnerable = 0;
+
+    int amount(StatusType type) const
+    {
+        switch (type)
+        {
+        case StatusType::Strength:
+            return strength;
+        case StatusType::Weak:
+            return weak;
+        case StatusType::Vulnerable:
+            return vulnerable;
+        case StatusType::Count:
+            break;
+        }
+        return 0;
+    }
+
+    void add(StatusType type, int value)
+    {
+        switch (type)
+        {
+        case StatusType::Strength:
+            strength += value;
+            break;
+        case StatusType::Weak:
+            weak += value;
+            break;
+        case StatusType::Vulnerable:
+            vulnerable += value;
+            break;
+        case StatusType::Count:
+            break;
+        }
+    }
 };
 
 enum class IntentType
 {
-    Attack,
+    Attack, // value is the base damage; Strength, Weak and Vulnerable apply when it hits
     Defend,
-    Buff,
+    Buff,   // gain value Strength
+    Debuff, // put the enemy's debuff status on the player for value turns
 };
 
 struct CIntent : public Component

@@ -4,8 +4,8 @@
 
 static const EnemyDefinition enemies[]{
     {"Slime", "Slime", 30, 6, 5, 2, false},
-    {"Guardian", "Orc", 48, 8, 8, 3, false},
-    {"Warden", "Necromancer", 90, 10, 10, 3, true},
+    {"Guardian", "Orc", 48, 8, 8, 3, false, StatusType::Vulnerable, 2},
+    {"Warden", "Necromancer", 90, 10, 10, 3, true, StatusType::Weak, 2},
 };
 static_assert(std::size(enemies) == enemyCount, "Every EnemyId needs an entry in the enemies table");
 

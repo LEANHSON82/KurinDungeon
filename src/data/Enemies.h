@@ -1,4 +1,5 @@
 #pragma once
+#include "data/Statuses.h"
 
 // Keep in the same order as the table in Enemies.cpp.
 enum class EnemyId
@@ -19,8 +20,10 @@ struct EnemyDefinition
     int maxHp = 0;
     int damage = 0;
     int block = 0;
-    int buff = 0;
+    int buff = 0; // Strength gained by the buff intent
     bool bossAbility = false;
+    StatusType debuff = StatusType::Weak; // put on the player by the debuff intent
+    int debuffAmount = 0; // 0 = this enemy never debuffs
 };
 
 const EnemyDefinition &GetEnemyDefinition(EnemyId id);
