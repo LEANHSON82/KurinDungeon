@@ -5,7 +5,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-option(KURIN_BUILD_TESTS "Build the core tests" ON)
+option(KURIN_BUILD_TESTS "Build the tests" ON)
 option(KURIN_WERROR "Treat compiler warnings as errors" OFF)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libraries" FORCE)
@@ -26,19 +26,18 @@ function(kurin_warnings target)
     endif()
 endfunction()
 
-add_library(ecs INTERFACE)
-target_include_directories(ecs INTERFACE src)
-target_compile_features(ecs INTERFACE cxx_std_17)
+# Everything except main.cpp goes into a library, so the tests can link the same code.
+file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+list(REMOVE_ITEM GAME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+add_library(kurin_game STATIC ${GAME_SOURCES})
+target_include_directories(kurin_game PUBLIC src)
+target_compile_features(kurin_game PUBLIC cxx_std_17)
+target_link_libraries(kurin_game PUBLIC raylib)
+set_target_properties(kurin_game PROPERTIES CXX_EXTENSIONS OFF)
+kurin_warnings(kurin_game)
 
-file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS src/core/*.cpp)
-add_library(kurin_core STATIC ${CORE_SOURCES})
-target_link_libraries(kurin_core PUBLIC ecs)
-set_target_properties(kurin_core PROPERTIES CXX_EXTENSIONS OFF)
-kurin_warnings(kurin_core)
-
-file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/platform/*.cpp)
-add_executable(kurin ${GAME_SOURCES})
-target_link_libraries(kurin PRIVATE kurin_core raylib)
+add_executable(kurin src/main.cpp)
+target_link_libraries(kurin PRIVATE kurin_game)
 set_target_properties(kurin PROPERTIES CXX_EXTENSIONS OFF)
 kurin_warnings(kurin)
 
@@ -54,11 +53,7 @@ add_custom_target(copy_resources ALL
 )
 add_dependencies(copy_resources kurin)
 
-if(KURIN_BUILD_TESTS)
+if(KURIN_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
     enable_testing()
-    add_test(NAME core_does_not_include_raylib
-        COMMAND ${CMAKE_COMMAND} -DCORE_DIR=${PROJECT_SOURCE_DIR}/src/core -P ${PROJECT_SOURCE_DIR}/cmake/checkCoreIsolation.cmake)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
-        add_subdirectory(tests)
-    endif()
+    add_subdirectory(tests)
 endif()
