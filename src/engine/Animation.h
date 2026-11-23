@@ -3,6 +3,9 @@
 #include <string>
 #include <raylib.h>
 
+// Every character sheet in the asset pack uses 100 x 100 pixel frames.
+inline constexpr int spriteFrameSize = 100;
+
 // A sprite sheet split into equal frames laid out left to right.
 class Animation
 {

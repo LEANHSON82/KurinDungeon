@@ -6,19 +6,19 @@
 #include "ui/Text.h"
 #include "ui/Widget.h"
 
-Scene_Menu::Scene_Menu(GameEngine *game) : Scene(game)
-{
-    registerAction(KEY_ENTER, "PLAY");
-}
-
-Rectangle Scene_Menu::playButton() const
+static Rectangle PlayButton()
 {
     return CenteredRect(600.0f, 336.0f, buttonHeight);
 }
 
-Rectangle Scene_Menu::exitButton() const
+static Rectangle ExitButton()
 {
     return CenteredRect(720.0f, 336.0f, buttonHeight);
+}
+
+Scene_Menu::Scene_Menu(GameEngine *game) : Scene(game)
+{
+    registerAction(KEY_ENTER, "PLAY");
 }
 
 void Scene_Menu::update()
@@ -29,11 +29,11 @@ void Scene_Menu::update()
 
 void Scene_Menu::sDoAction(const Action &action)
 {
-    if ((action.name() == "PLAY" && action.type() == "START") || isClicked(action, playButton()))
+    if (action.isStart("PLAY") || isClicked(action, PlayButton()))
     {
         m_game->changeScene("CHARACTER_SELECT", std::make_shared<Scene_CharacterSelect>(m_game), true);
     }
-    else if (isClicked(action, exitButton()))
+    else if (isClicked(action, ExitButton()))
     {
         m_game->quit();
     }
@@ -47,6 +47,6 @@ void Scene_Menu::sRender()
     DrawTextOutlined(font, "KURIN", {screenWidth / 2.0f, 340.0f}, logoText, goldColor);
     DrawTextOutlined(font, "A dungeon deckbuilder", {screenWidth / 2.0f, 460.0f}, bigText, peachColor);
     DrawPanel(assets, CenteredRect(560.0f, 480.0f, 300.0f));
-    DrawButton(assets, playButton(), "Play", true, isHeld(playButton()));
-    DrawButton(assets, exitButton(), "Exit", false, isHeld(exitButton()));
+    DrawButton(assets, PlayButton(), "Play", ButtonStyle::Gold, isHeld(PlayButton()));
+    DrawButton(assets, ExitButton(), "Exit", ButtonStyle::Plain, isHeld(ExitButton()));
 }

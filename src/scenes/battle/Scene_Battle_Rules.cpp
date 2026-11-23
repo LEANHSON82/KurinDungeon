@@ -6,8 +6,11 @@
 static constexpr int bossAbilityHpPercent = 50;
 static constexpr int bossAbilityBlockMultiplier = 2;
 static constexpr int lowHpDefendPercent = 30;
-static constexpr int buffEveryTurns = 3;
-static constexpr int debuffTurn = 2; // enemies that debuff do it on turns 2, 5, 8...
+// A healthy enemy repeats the same three turns: attack, debuff (if it has one, otherwise
+// attack again), buff.
+static constexpr int intentCycleTurns = 3;
+static constexpr int debuffTurnInCycle = 2; // turns 2, 5, 8...
+static constexpr int buffTurnInCycle = 0;   // turns 3, 6, 9...
 
 // Weak hits deal 3/4 damage, Vulnerable targets take 3/2 damage.
 static constexpr int weakNumerator = 3;
@@ -29,6 +32,11 @@ EntityVec Scene_Battle::getPile(Zone zone)
         return a->get<CCard>().order < b->get<CCard>().order;
     });
     return pile;
+}
+
+int Scene_Battle::pileSize(Zone zone)
+{
+    return static_cast<int>(getPile(zone).size());
 }
 
 bool Scene_Battle::isAlive(const std::shared_ptr<Entity> &enemy) const
@@ -57,7 +65,7 @@ void Scene_Battle::sDrawCards(int count)
 {
     for (int i = 0; i < count; i++)
     {
-        if (static_cast<int>(getPile(Zone::Hand).size()) >= maxHandSize)
+        if (pileSize(Zone::Hand) >= maxHandSize)
         {
             return;
         }
@@ -89,9 +97,9 @@ void Scene_Battle::discardHand()
     }
 }
 
-static bool IsBelowPercent(const CHealth &health, int maxHp, int percent)
+static bool IsBelowPercent(const CHealth &health, int percent)
 {
-    return health.hp * 100 < maxHp * percent;
+    return health.hp * 100 < health.maxHp * percent;
 }
 
 static CIntent ChooseIntent(const std::shared_ptr<Entity> &enemy, int turn)
@@ -100,19 +108,20 @@ static CIntent ChooseIntent(const std::shared_ptr<Entity> &enemy, int turn)
     const CHealth &health = enemy->get<CHealth>();
 
     if (enemy->has<CBossAbility>() && !enemy->get<CBossAbility>().used &&
-        IsBelowPercent(health, definition.maxHp, bossAbilityHpPercent))
+        IsBelowPercent(health, bossAbilityHpPercent))
     {
         return CIntent(IntentType::Defend, definition.block * bossAbilityBlockMultiplier, true);
     }
-    if (IsBelowPercent(health, definition.maxHp, lowHpDefendPercent))
+    if (IsBelowPercent(health, lowHpDefendPercent))
     {
         return CIntent(IntentType::Defend, definition.block, false);
     }
-    if (turn % buffEveryTurns == 0)
+    int turnInCycle = turn % intentCycleTurns;
+    if (turnInCycle == buffTurnInCycle)
     {
         return CIntent(IntentType::Buff, definition.buff, false);
     }
-    if (definition.debuffAmount > 0 && turn % buffEveryTurns == debuffTurn)
+    if (definition.debuffAmount > 0 && turnInCycle == debuffTurnInCycle)
     {
         return CIntent(IntentType::Debuff, definition.debuffAmount, false);
     }
@@ -175,6 +184,53 @@ EntityVec Scene_Battle::getTargets(const Card &card, const std::shared_ptr<Entit
     return targets;
 }
 
+// The part of a card effect that lands on the player.
+void Scene_Battle::applyEffectToPlayer(const Card &card, const Effect &effect)
+{
+    switch (effect.type)
+    {
+    case EffectType::Damage:
+        break;
+    case EffectType::Block:
+        gainBlock(m_player, m_player, effect.value);
+        break;
+    case EffectType::DrawCards:
+        // The played card is still in hand, so a reshuffle never draws it back.
+        sDrawCards(effect.value);
+        break;
+    case EffectType::GainEnergy:
+        m_energy += effect.value;
+        break;
+    case EffectType::LoseHp:
+        loseHp(m_player, effect.value);
+        break;
+    case EffectType::ApplyStatus:
+        if (card.target == Target::Self)
+        {
+            applyStatus(m_player, m_player, effect.status, effect.value);
+        }
+        break;
+    }
+}
+
+// The part of a card effect that lands on one of the card's targets.
+void Scene_Battle::applyEffectToEnemy(const Effect &effect, const std::shared_ptr<Entity> &enemy)
+{
+    // An earlier hit of the same card may already have killed this enemy.
+    if (!isAlive(enemy))
+    {
+        return;
+    }
+    if (effect.type == EffectType::Damage)
+    {
+        dealDamage(m_player, enemy, effect.value);
+    }
+    else if (effect.type == EffectType::ApplyStatus)
+    {
+        applyStatus(m_player, enemy, effect.status, effect.value);
+    }
+}
+
 bool Scene_Battle::sPlayCard(const std::shared_ptr<Entity> &card, const std::shared_ptr<Entity> &target)
 {
     if (!canPlayCard(card, target))
@@ -188,45 +244,13 @@ bool Scene_Battle::sPlayCard(const std::shared_ptr<Entity> &card, const std::sha
     EntityVec targets = getTargets(data, target);
     for (const Effect &effect : data.effects)
     {
-        switch (effect.type)
+        applyEffectToPlayer(data, effect);
+        for (const std::shared_ptr<Entity> &enemy : targets)
         {
-        case EffectType::Damage:
-            for (const std::shared_ptr<Entity> &enemy : targets)
-            {
-                if (isAlive(enemy))
-                {
-                    dealDamage(m_player, enemy, effect.value);
-                }
-            }
-            break;
-        case EffectType::Block:
-            gainBlock(m_player, m_player, effect.value);
-            break;
-        case EffectType::DrawCards:
-            // The played card is still in hand, so a reshuffle never draws it back.
-            sDrawCards(effect.value);
-            break;
-        case EffectType::GainEnergy:
-            m_energy += effect.value;
-            break;
-        case EffectType::LoseHp:
-            loseHp(m_player, effect.value);
-            break;
-        case EffectType::ApplyStatus:
-            if (data.target == Target::Self)
-            {
-                applyStatus(m_player, m_player, effect.status, effect.value);
-            }
-            for (const std::shared_ptr<Entity> &enemy : targets)
-            {
-                if (isAlive(enemy))
-                {
-                    applyStatus(m_player, enemy, effect.status, effect.value);
-                }
-            }
-            break;
+            applyEffectToEnemy(effect, enemy);
         }
 
+        // A card stops as soon as the battle is decided, e.g. when its HP cost kills the player.
         updateResult();
         if (m_result != BattleResult::InProgress)
         {
@@ -239,6 +263,33 @@ bool Scene_Battle::sPlayCard(const std::shared_ptr<Entity> &card, const std::sha
     return true;
 }
 
+void Scene_Battle::performIntent(const std::shared_ptr<Entity> &enemy)
+{
+    // Block from the enemy's last action lasted through the player's turn and ends now.
+    enemy->get<CBlock>().value = 0;
+    const CIntent &intent = enemy->get<CIntent>();
+    if (intent.bossAction && enemy->has<CBossAbility>())
+    {
+        enemy->get<CBossAbility>().used = true;
+    }
+
+    switch (intent.type)
+    {
+    case IntentType::Attack:
+        dealDamage(enemy, m_player, intent.value);
+        break;
+    case IntentType::Defend:
+        gainBlock(enemy, enemy, intent.value);
+        break;
+    case IntentType::Buff:
+        applyStatus(enemy, enemy, StatusType::Strength, intent.value);
+        break;
+    case IntentType::Debuff:
+        applyStatus(enemy, m_player, GetEnemyDefinition(enemy->get<CEnemy>().id).debuff, intent.value);
+        break;
+    }
+}
+
 void Scene_Battle::sEnemyTurn()
 {
     for (const std::shared_ptr<Entity> &enemy : getEnemies())
@@ -247,29 +298,7 @@ void Scene_Battle::sEnemyTurn()
         {
             continue;
         }
-
-        enemy->get<CBlock>().value = 0;
-        CIntent intent = enemy->get<CIntent>();
-        if (intent.bossAction && enemy->has<CBossAbility>())
-        {
-            enemy->get<CBossAbility>().used = true;
-        }
-
-        switch (intent.type)
-        {
-        case IntentType::Attack:
-            dealDamage(enemy, m_player, intent.value);
-            break;
-        case IntentType::Defend:
-            gainBlock(enemy, enemy, intent.value);
-            break;
-        case IntentType::Buff:
-            applyStatus(enemy, enemy, StatusType::Strength, intent.value);
-            break;
-        case IntentType::Debuff:
-            applyStatus(enemy, m_player, GetEnemyDefinition(enemy->get<CEnemy>().id).debuff, intent.value);
-            break;
-        }
+        performIntent(enemy);
 
         updateResult();
         if (m_result != BattleResult::InProgress)
@@ -437,6 +466,5 @@ void Scene_Battle::logBattle(const std::string &label)
     const CHealth &health = m_player->get<CHealth>();
     TraceLog(LOG_DEBUG, "%s | Turn %d | %s | Player HP %d Block %d | Energy %d | Draw %d | Hand %d | Discard %d | Exhaust %d",
              label.c_str(), m_turn, ResultName(m_result), health.hp, m_player->get<CBlock>().value, m_energy,
-             static_cast<int>(getPile(Zone::Draw).size()), static_cast<int>(getPile(Zone::Hand).size()),
-             static_cast<int>(getPile(Zone::Discard).size()), static_cast<int>(getPile(Zone::Exhaust).size()));
+             pileSize(Zone::Draw), pileSize(Zone::Hand), pileSize(Zone::Discard), pileSize(Zone::Exhaust));
 }

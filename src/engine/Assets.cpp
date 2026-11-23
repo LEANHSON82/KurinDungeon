@@ -3,9 +3,6 @@
 #include <fstream>
 #include <sstream>
 
-// Every character sheet in the asset pack uses 100 x 100 pixel frames.
-static constexpr int spriteFrameWidth = 100;
-
 template <typename T>
 static const T &Find(const std::map<std::string, T> &items, const std::string &name, const char *kind)
 {
@@ -67,26 +64,63 @@ Texture2D Assets::loadSilhouette(const std::string &file)
     return texture;
 }
 
-void Assets::addTexture(const std::string &name, const std::string &file, int filter)
+// Warns about a line of the asset list that has too few columns or a number that is not one.
+static void CheckColumns(const std::istringstream &words, const std::string &name)
 {
-    m_textures[name] = loadTexture(file, filter);
+    if (words.fail())
+    {
+        TraceLog(LOG_WARNING, "Asset '%s' has missing or bad columns in the asset list", name.c_str());
+    }
 }
 
-void Assets::addBox(const std::string &name, const std::string &file, Rectangle part, float cornerX, float cornerY)
+// Texture Name file [smooth]
+void Assets::addTexture(const std::string &name, std::istringstream &words)
 {
+    std::string file;
+    words >> file;
+    CheckColumns(words, name);
+
+    std::string filter; // optional, so it is read after the check
+    words >> filter;
+    // "smooth" is for large paintings shown scaled down; pixel art keeps its hard edges.
+    m_textures[name] = loadTexture(file, filter == "smooth" ? TEXTURE_FILTER_TRILINEAR : TEXTURE_FILTER_POINT);
+}
+
+// Box Name file x y width height cornerX cornerY
+void Assets::addBox(const std::string &name, std::istringstream &words)
+{
+    std::string file;
+    Rectangle part{};
+    float cornerX = 0.0f;
+    float cornerY = 0.0f;
+    words >> file >> part.x >> part.y >> part.width >> part.height >> cornerX >> cornerY;
+    CheckColumns(words, name);
     m_boxes[name] = BoxImage{loadTexture(file, TEXTURE_FILTER_POINT), part, cornerX, cornerY};
 }
 
-void Assets::addAnimation(const std::string &name, const std::string &sheet, const std::string &plainSheet, int speed)
+// Animation Name sheet plainSheet speed
+void Assets::addAnimation(const std::string &name, std::istringstream &words)
 {
+    std::string sheet;
+    std::string plainSheet;
+    int speed = 1;
+    words >> sheet >> plainSheet >> speed;
+    CheckColumns(words, name);
+
     Texture2D texture = loadTexture(sheet, TEXTURE_FILTER_POINT);
     Texture2D silhouette = loadSilhouette(plainSheet);
-    int frameCount = std::max(1, texture.width / spriteFrameWidth);
+    int frameCount = std::max(1, texture.width / spriteFrameSize);
     m_animations[name] = Animation(name, texture, silhouette, static_cast<std::size_t>(frameCount), static_cast<std::size_t>(speed));
 }
 
-void Assets::addFont(const std::string &name, const std::string &file, int size)
+// Font Name file size
+void Assets::addFont(const std::string &name, std::istringstream &words)
 {
+    std::string file;
+    int size = 20;
+    words >> file >> size;
+    CheckColumns(words, name);
+
     std::string fullPath = path(file);
     if (!checkFile(fullPath))
     {
@@ -98,18 +132,57 @@ void Assets::addFont(const std::string &name, const std::string &file, int size)
     m_fonts[name] = font;
 }
 
-void Assets::addSound(const std::string &name, const std::string &file)
+// Sound Name file
+void Assets::addSound(const std::string &name, std::istringstream &words)
 {
+    std::string file;
+    words >> file;
+    CheckColumns(words, name);
+
     std::string fullPath = path(file);
     m_sounds[name] = checkFile(fullPath) ? LoadSound(fullPath.c_str()) : Sound{};
 }
 
-// One asset per line:
-//   Texture   Name file [smooth]
-//   Box       Name file x y width height cornerX cornerY
-//   Animation Name sheet plainSheet speed
-//   Font      Name file size
-//   Sound     Name file
+// Loads the asset described by one line of the asset list. The first word is the kind of
+// asset, the second its name; the add... function of that kind reads the remaining columns.
+void Assets::loadLine(const std::string &line)
+{
+    std::istringstream words(line);
+    std::string type;
+    bool blankLine = !(words >> type);
+    if (blankLine || type[0] == '#')
+    {
+        return;
+    }
+    std::string name;
+    words >> name;
+
+    if (type == "Texture")
+    {
+        addTexture(name, words);
+    }
+    else if (type == "Box")
+    {
+        addBox(name, words);
+    }
+    else if (type == "Animation")
+    {
+        addAnimation(name, words);
+    }
+    else if (type == "Font")
+    {
+        addFont(name, words);
+    }
+    else if (type == "Sound")
+    {
+        addSound(name, words);
+    }
+    else
+    {
+        TraceLog(LOG_WARNING, "Unknown asset type '%s' in the asset list", type.c_str());
+    }
+}
+
 void Assets::loadFromFile(const std::string &folder, const std::string &listFile)
 {
     m_folder = folder;
@@ -123,56 +196,7 @@ void Assets::loadFromFile(const std::string &folder, const std::string &listFile
     std::string line;
     while (std::getline(file, line))
     {
-        std::istringstream words(line);
-        std::string type;
-        std::string name;
-        if (!(words >> type) || type[0] == '#')
-        {
-            continue;
-        }
-        words >> name;
-
-        if (type == "Texture")
-        {
-            std::string texturePath;
-            std::string filter;
-            words >> texturePath >> filter;
-            addTexture(name, texturePath, filter == "smooth" ? TEXTURE_FILTER_TRILINEAR : TEXTURE_FILTER_POINT);
-        }
-        else if (type == "Box")
-        {
-            std::string boxPath;
-            Rectangle part{};
-            float cornerX = 0.0f;
-            float cornerY = 0.0f;
-            words >> boxPath >> part.x >> part.y >> part.width >> part.height >> cornerX >> cornerY;
-            addBox(name, boxPath, part, cornerX, cornerY);
-        }
-        else if (type == "Animation")
-        {
-            std::string sheet;
-            std::string plainSheet;
-            int speed = 1;
-            words >> sheet >> plainSheet >> speed;
-            addAnimation(name, sheet, plainSheet, speed);
-        }
-        else if (type == "Font")
-        {
-            std::string fontPath;
-            int size = 20;
-            words >> fontPath >> size;
-            addFont(name, fontPath, size);
-        }
-        else if (type == "Sound")
-        {
-            std::string soundPath;
-            words >> soundPath;
-            addSound(name, soundPath);
-        }
-        else
-        {
-            TraceLog(LOG_WARNING, "Unknown asset type '%s' in %s", type.c_str(), listFile.c_str());
-        }
+        loadLine(line);
     }
 
     if (m_missingFiles > 0)

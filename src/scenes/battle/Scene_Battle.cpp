@@ -4,6 +4,9 @@
 #include "scenes/Scene_Reward.h"
 #include "scenes/battle/BattleLayout.h"
 
+// Keys 1-9 select the card at that position in the hand.
+static constexpr int selectKeyCount = 9;
+
 // ---------------------------------------------------------------------------
 // Setup
 
@@ -15,7 +18,7 @@ Scene_Battle::Scene_Battle(GameEngine *game, const std::vector<EnemyId> &enemies
     registerAction(KEY_E, "END_TURN");
     registerAction(KEY_LEFT, "TARGET_LEFT");
     registerAction(KEY_RIGHT, "TARGET_RIGHT");
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < selectKeyCount; i++)
     {
         registerAction(KEY_ONE + i, "SELECT_" + std::to_string(i + 1));
     }
@@ -190,73 +193,125 @@ void Scene_Battle::finishBattle()
     }
 }
 
-void Scene_Battle::sDoAction(const Action &action)
+// After the battle is decided the only thing left to do is to leave, once the playback is over.
+void Scene_Battle::doResultAction(const Action &action)
 {
-    const std::string &name = action.name();
-    bool start = action.type() == "START";
-
-    if (m_result != BattleResult::InProgress)
-    {
-        if (!isPlayingBack() && ((name == "CONFIRM" && start) || isClicked(action, ContinueButton())))
-        {
-            finishBattle();
-        }
-        return;
-    }
     if (isPlayingBack())
     {
         return;
     }
-    if (name == "MOUSE_MOVE")
+    if (action.isStart("CONFIRM") || isClicked(action, ContinueButton()))
     {
-        if (std::shared_ptr<Entity> enemy = enemyAt(action.pos()))
+        finishBattle();
+    }
+}
+
+void Scene_Battle::targetEnemyAt(Vector2 point)
+{
+    std::shared_ptr<Entity> enemy = enemyAt(point);
+    if (enemy)
+    {
+        m_target = enemy;
+    }
+}
+
+void Scene_Battle::selectHandCard(int index)
+{
+    EntityVec hand = getPile(Zone::Hand);
+    if (index >= 0 && index < static_cast<int>(hand.size()))
+    {
+        toggleCard(hand[index]);
+    }
+}
+
+void Scene_Battle::confirmSelectedCard()
+{
+    if (!m_selectedCard)
+    {
+        return;
+    }
+    bool needsTarget = selectedCard()->target == Target::SingleEnemy;
+    playSelectedCard(needsTarget ? m_target : nullptr);
+}
+
+// A click on a card selects it; with a card selected, a click on the battlefield plays it.
+void Scene_Battle::doLeftClick(Vector2 point)
+{
+    std::shared_ptr<Entity> card = cardAt(point);
+    if (card)
+    {
+        toggleCard(card);
+        return;
+    }
+    if (m_selectedCard)
+    {
+        clickBattlefield(point);
+    }
+}
+
+// "SELECT_3" is hand position 2. Any other action gives -1.
+static int SelectedHandIndex(const Action &action)
+{
+    for (int i = 0; i < selectKeyCount; i++)
+    {
+        if (action.isStart("SELECT_" + std::to_string(i + 1)))
         {
-            m_target = enemy;
+            return i;
         }
     }
-    else if ((name == "CANCEL" || name == "RIGHT_CLICK") && start)
+    return -1;
+}
+
+void Scene_Battle::sDoAction(const Action &action)
+{
+    if (m_result != BattleResult::InProgress)
     {
-        m_selectedCard = nullptr;
+        doResultAction(action);
+        return;
     }
-    else if ((name == "END_TURN" && start) || isClicked(action, EndTurnButton()))
+    // The rules run ahead of the animation: input waits until the player has seen what happened.
+    if (isPlayingBack())
+    {
+        return;
+    }
+
+    if (action.isStart("END_TURN") || isClicked(action, EndTurnButton()))
     {
         sEndTurn();
         m_selectedCard = nullptr;
     }
-    else if (name == "TARGET_LEFT" && start)
+    else if (action.isStart("MOUSE_MOVE"))
+    {
+        targetEnemyAt(action.pos());
+    }
+    else if (action.isStart("CANCEL") || action.isStart("RIGHT_CLICK"))
+    {
+        m_selectedCard = nullptr;
+    }
+    else if (action.isStart("TARGET_LEFT"))
     {
         m_target = nextLivingEnemy(m_target, -1);
     }
-    else if (name == "TARGET_RIGHT" && start)
+    else if (action.isStart("TARGET_RIGHT"))
     {
         m_target = nextLivingEnemy(m_target, 1);
     }
-    else if (name.rfind("SELECT_", 0) == 0 && start)
+    else if (action.isStart("CONFIRM"))
     {
-        int index = std::stoi(name.substr(7)) - 1;
-        EntityVec hand = getPile(Zone::Hand);
-        if (index < static_cast<int>(hand.size()))
-        {
-            toggleCard(hand[index]);
-        }
+        confirmSelectedCard();
     }
-    else if (name == "CONFIRM" && start && m_selectedCard)
+    else if (action.isStart("LEFT_CLICK"))
     {
-        playSelectedCard(selectedCard()->target == Target::SingleEnemy ? m_target : nullptr);
+        doLeftClick(action.pos());
     }
-    else if (name == "LEFT_CLICK" && start)
+    else
     {
-        if (std::shared_ptr<Entity> card = cardAt(action.pos()))
-        {
-            toggleCard(card);
-        }
-        else if (m_selectedCard)
-        {
-            clickBattlefield(action.pos());
-        }
+        selectHandCard(SelectedHandIndex(action));
     }
 }
 
+// When the targeted enemy dies, the target moves to the next living one right away, so the
+// hand is never drawn as unplayable while there is still someone to hit.
 void Scene_Battle::retarget()
 {
     if (!isAlive(m_target))

@@ -3,6 +3,8 @@
 
 class Scene_Logo : public Scene
 {
+    void goToMenu();
+
 public:
     explicit Scene_Logo(GameEngine *game);
     void update() override;

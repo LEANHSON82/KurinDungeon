@@ -17,6 +17,7 @@ static constexpr float mapCenterX = 900.0f;
 
 static constexpr Rectangle paperRect{460.0f, 24.0f, 880.0f, 1032.0f};
 static constexpr Rectangle legendRect{1420.0f, 300.0f, 400.0f, 420.0f};
+static constexpr Rectangle healthPanel{60.0f, 60.0f, 340.0f, 120.0f};
 static constexpr Color walkedColor{173, 47, 69, 255};
 static constexpr Color goldRing{240, 181, 65, 255};
 static constexpr Color clearedTint{170, 150, 150, 200};
@@ -35,11 +36,12 @@ Scene_Map::Scene_Map(GameEngine *game) : Scene(game)
 // ---------------------------------------------------------------------------
 // Screen layout
 
-void Scene_Map::layoutRooms()
+// The column halfway between the leftmost and rightmost room, so the map is drawn centered.
+static float MiddleColumn(const EntityVec &rooms)
 {
     int lowest = mapColumns;
     int highest = -1;
-    for (const std::shared_ptr<Entity> &entity : m_rooms)
+    for (const std::shared_ptr<Entity> &entity : rooms)
     {
         const CRoom &room = entity->get<CRoom>();
         if (IsOnGrid(room))
@@ -48,41 +50,49 @@ void Scene_Map::layoutRooms()
             highest = std::max(highest, room.column);
         }
     }
-    float middleColumn = (lowest + highest) / 2.0f;
+    return (lowest + highest) / 2.0f;
+}
 
-    float firstFloorX = 0.0f;
-    float lastFloorX = 0.0f;
-    int firstFloorCount = 0;
-    int lastFloorCount = 0;
+// The average x of the rooms on one floor, or fallback when that floor has no rooms.
+static float FloorCenterX(const EntityVec &rooms, int floor, float fallback)
+{
+    float total = 0.0f;
+    int count = 0;
+    for (const std::shared_ptr<Entity> &entity : rooms)
+    {
+        if (entity->get<CRoom>().floor == floor)
+        {
+            total += entity->get<CTransform>().pos.x;
+            count++;
+        }
+    }
+    return count > 0 ? total / count : fallback;
+}
+
+void Scene_Map::layoutRooms()
+{
+    float middleColumn = MiddleColumn(m_rooms);
     for (const std::shared_ptr<Entity> &entity : m_rooms)
     {
         const CRoom &room = entity->get<CRoom>();
         float x = mapCenterX + (room.column - middleColumn) * columnGap;
         float y = bottomY - (room.floor + 1) * floorGap;
         entity->add<CTransform>(Vector2{x, y});
-        if (IsOnGrid(room) && room.floor == 0)
-        {
-            firstFloorX += x;
-            firstFloorCount++;
-        }
-        if (IsOnGrid(room) && room.floor == mapFloors - 1)
-        {
-            lastFloorX += x;
-            lastFloorCount++;
-        }
     }
 
-    // Center the start and boss rooms under and over the rooms they link to.
+    // The start and boss rooms have no column of their own: center them under and over
+    // the rooms they link to.
     for (const std::shared_ptr<Entity> &entity : m_rooms)
     {
         RoomType type = entity->get<CRoom>().type;
-        if (type == RoomType::Start && firstFloorCount > 0)
+        Vector2 &position = entity->get<CTransform>().pos;
+        if (type == RoomType::Start)
         {
-            entity->get<CTransform>().pos.x = firstFloorX / firstFloorCount;
+            position.x = FloorCenterX(m_rooms, 0, position.x);
         }
-        if (type == RoomType::Boss && lastFloorCount > 0)
+        if (type == RoomType::Boss)
         {
-            entity->get<CTransform>().pos.x = lastFloorX / lastFloorCount;
+            position.x = FloorCenterX(m_rooms, mapFloors - 1, position.x);
         }
     }
 }
@@ -143,13 +153,14 @@ void Scene_Map::update()
 
 void Scene_Map::sDoAction(const Action &action)
 {
-    if (action.name() == "LEFT_CLICK" && action.type() == "START")
+    if (!action.isStart("LEFT_CLICK"))
     {
-        std::shared_ptr<Entity> room = visitableRoomAt(action.pos());
-        if (room)
-        {
-            enterRoom(room);
-        }
+        return;
+    }
+    std::shared_ptr<Entity> room = visitableRoomAt(action.pos());
+    if (room)
+    {
+        enterRoom(room);
     }
 }
 
@@ -320,40 +331,56 @@ void Scene_Map::drawPaths() const
     }
 }
 
-void Scene_Map::drawRooms(const std::shared_ptr<Entity> &hovered) const
+static void DrawRoomIcon(const Assets &assets, RoomType type, Vector2 position, float grow, Color tint)
+{
+    DrawIcon(assets.getTexture(RoomIcon(type)), position, RoomIconScale(type) * grow, tint);
+}
+
+static void DrawRoomRing(Vector2 center, float innerRadius, float outerRadius, Color color)
+{
+    DrawRing(center, innerRadius, outerRadius, 0.0f, 360.0f, 32, color);
+}
+
+// A room is drawn in one of four ways: the room the player is in, a room that can be
+// entered now, a room already cleared, and a room that is still out of reach.
+void Scene_Map::drawRoom(const std::shared_ptr<Entity> &entity, bool hovered, float wave) const
 {
     const Assets &assets = m_game->assets();
-    float wave = std::sin(static_cast<float>(m_currentFrame) / framesPerSecond * 5.0f);
-    auto drawIcon = [&](RoomType type, Vector2 position, float grow, Color tint) {
-        DrawIcon(assets.getTexture(RoomIcon(type)), position, RoomIconScale(type) * grow, tint);
-    };
+    const CRoom &room = entity->get<CRoom>();
+    Vector2 position = entity->get<CTransform>().pos;
 
+    if (entity == m_currentRoom)
+    {
+        DrawRoomRing(position, roomRadius - 4.0f, roomRadius + 6.0f, goldRing);
+        DrawRoomIcon(assets, room.type, position, 1.0f, WHITE);
+        return;
+    }
+    if (canVisit(m_currentRoom, entity))
+    {
+        // It pulses gently to invite a click; under the mouse it stays big and bright.
+        float glow = hovered ? 0.55f : 0.3f + 0.12f * wave;
+        float grow = hovered ? 1.3f : 1.0f + 0.08f * wave;
+        DrawCircleV(position, roomRadius + 10.0f, Fade(goldRing, glow));
+        DrawRoomRing(position, roomRadius + 4.0f, roomRadius + 10.0f, goldRing);
+        DrawRoomIcon(assets, room.type, position, grow, WHITE);
+        return;
+    }
+    if (room.cleared)
+    {
+        DrawRoomRing(position, roomRadius - 6.0f, roomRadius, walkedColor);
+        DrawRoomIcon(assets, room.type, position, 1.0f, clearedTint);
+        return;
+    }
+    DrawRoomIcon(assets, room.type, position, 0.9f, lockedTint);
+}
+
+void Scene_Map::drawRooms(const std::shared_ptr<Entity> &hovered) const
+{
+    // Swings between -1 and 1 a little under once a second.
+    float wave = std::sin(static_cast<float>(m_currentFrame) / framesPerSecond * 5.0f);
     for (const std::shared_ptr<Entity> &entity : m_rooms)
     {
-        const CRoom &room = entity->get<CRoom>();
-        Vector2 position = entity->get<CTransform>().pos;
-        if (entity == m_currentRoom)
-        {
-            DrawRing(position, roomRadius - 4.0f, roomRadius + 6.0f, 0.0f, 360.0f, 32, goldRing);
-            drawIcon(room.type, position, 1.0f, WHITE);
-        }
-        else if (canVisit(m_currentRoom, entity))
-        {
-            bool isHovered = entity == hovered;
-            float glow = isHovered ? 0.55f : 0.3f + 0.12f * wave;
-            DrawCircleV(position, roomRadius + 10.0f, Fade(goldRing, glow));
-            DrawRing(position, roomRadius + 4.0f, roomRadius + 10.0f, 0.0f, 360.0f, 32, goldRing);
-            drawIcon(room.type, position, isHovered ? 1.3f : 1.0f + 0.08f * wave, WHITE);
-        }
-        else if (room.cleared)
-        {
-            DrawRing(position, roomRadius - 6.0f, roomRadius, 0.0f, 360.0f, 32, walkedColor);
-            drawIcon(room.type, position, 1.0f, clearedTint);
-        }
-        else
-        {
-            drawIcon(room.type, position, 0.9f, lockedTint);
-        }
+        drawRoom(entity, entity == hovered, wave);
     }
 }
 
@@ -363,13 +390,17 @@ void Scene_Map::drawRoomInfo(const std::shared_ptr<Entity> &room) const
     const Font &font = assets.getFont("Main");
     const float width = 400.0f;
     const float height = 180.0f;
+    const float gap = 80.0f;          // between the room and its box
+    const float screenMargin = 20.0f; // the box keeps this far from the screen edge
+
+    // The box sits to the right of the room, or to the left when there is no space.
     Vector2 position = room->get<CTransform>().pos;
-    float x = position.x + 80.0f;
-    if (x + width > screenWidth - 20.0f)
+    float x = position.x + gap;
+    if (x + width > screenWidth - screenMargin)
     {
-        x = position.x - 80.0f - width;
+        x = position.x - gap - width;
     }
-    float y = std::clamp(position.y - height / 2.0f, 20.0f, screenHeight - height - 20.0f);
+    float y = std::clamp(position.y - height / 2.0f, screenMargin, screenHeight - height - screenMargin);
     Rectangle box{x, y, width, height};
     DrawPanel(assets, box);
 
@@ -387,12 +418,15 @@ void Scene_Map::drawLegend() const
     DrawTextCenter(font, "Legend", {legendRect.x + legendRect.width / 2.0f, legendRect.y + 60.0f}, bigText, inkColor);
 
     const RoomType types[]{RoomType::Combat, RoomType::Rest, RoomType::Boss, RoomType::Start};
-    for (int i = 0; i < 4; i++)
+    const float rowHeight = 70.0f;
+    float y = legendRect.y + 140.0f;
+    for (RoomType type : types)
     {
-        float y = legendRect.y + 140.0f + i * 70.0f;
-        float iconScale = types[i] == RoomType::Boss ? uiScale : RoomIconScale(types[i]);
-        DrawIcon(assets.getTexture(RoomIcon(types[i])), {legendRect.x + 80.0f, y}, iconScale, WHITE);
-        DrawTextLeft(font, RoomName(types[i]), {legendRect.x + 140.0f, y - 26.0f}, bigText, inkColor);
+        // The boss icon is extra large on the map; in the legend it lines up with the others.
+        float iconScale = type == RoomType::Boss ? uiScale : RoomIconScale(type);
+        DrawIcon(assets.getTexture(RoomIcon(type)), {legendRect.x + 80.0f, y}, iconScale, WHITE);
+        DrawTextLeft(font, RoomName(type), {legendRect.x + 140.0f, y - 26.0f}, bigText, inkColor);
+        y += rowHeight;
     }
 }
 
@@ -407,10 +441,9 @@ void Scene_Map::sRender()
     drawRooms(visitableRoomAt(GetMousePosition()));
     drawLegend();
 
-    Rectangle info{60.0f, 60.0f, 340.0f, 120.0f};
-    DrawPanel(assets, info);
-    DrawIcon(assets.getTexture("Heart"), {info.x + 66.0f, info.y + 60.0f}, uiScale, WHITE);
-    DrawTextLeft(assets.getFont("Main"), TextFormat("%d / %d", run.hp, run.maxHp), {info.x + 110.0f, info.y + 30.0f}, bigText, textColor);
+    DrawPanel(assets, healthPanel);
+    DrawIcon(assets.getTexture("Heart"), {healthPanel.x + 66.0f, healthPanel.y + 60.0f}, uiScale, WHITE);
+    DrawTextLeft(assets.getFont("Main"), TextFormat("%d / %d", run.hp, run.maxHp), {healthPanel.x + 110.0f, healthPanel.y + 30.0f}, bigText, textColor);
 
     std::shared_ptr<Entity> pointed = roomAt(GetMousePosition());
     if (pointed)

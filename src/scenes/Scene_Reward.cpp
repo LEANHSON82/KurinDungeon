@@ -43,8 +43,8 @@ void Scene_Reward::sDoAction(const Action &action)
 {
     for (int i = 0; i < static_cast<int>(m_choices.size()); i++)
     {
-        bool key = action.name() == "CHOOSE_" + std::to_string(i + 1) && action.type() == "START";
-        if (key || isClicked(action, ChoiceRect(i)))
+        bool keyPressed = action.isStart("CHOOSE_" + std::to_string(i + 1));
+        if (keyPressed || isClicked(action, ChoiceRect(i)))
         {
             choose(i);
             return;

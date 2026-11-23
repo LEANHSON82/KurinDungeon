@@ -63,7 +63,7 @@ void Scene_CharacterSelect::update()
 
 void Scene_CharacterSelect::sDoAction(const Action &action)
 {
-    if ((action.name() == "CONFIRM" && action.type() == "START") || isClicked(action, ConfirmButton()))
+    if (action.isStart("CONFIRM") || isClicked(action, ConfirmButton()))
     {
         confirm();
     }
@@ -81,5 +81,5 @@ void Scene_CharacterSelect::sRender()
     DrawTextOutlined(font, "Knight", {screenWidth / 2.0f, panel.y + 400.0f}, titleText, goldColor);
     DrawTextCenter(font, DescribeHero().c_str(), {screenWidth / 2.0f, panel.y + 470.0f}, smallText, peachColor);
 
-    DrawButton(assets, ConfirmButton(), "Confirm", true, isHeld(ConfirmButton()));
+    DrawButton(assets, ConfirmButton(), "Confirm", ButtonStyle::Gold, isHeld(ConfirmButton()));
 }

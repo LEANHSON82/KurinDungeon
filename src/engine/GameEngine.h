@@ -45,7 +45,6 @@ public:
     void run();
     void update();
     void quit() { m_running = false; }
-    bool isRunning() const { return m_running; }
 
     // scene may be null to return to a scene that is already in the map.
     void changeScene(const std::string &name, std::shared_ptr<Scene> scene = nullptr, bool endCurrentScene = false);

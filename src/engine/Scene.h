@@ -39,5 +39,4 @@ public:
     void registerAction(int key, const std::string &name);
 
     const ActionMap &getActionMap() const { return m_actionMap; }
-    std::size_t currentFrame() const { return m_currentFrame; }
 };

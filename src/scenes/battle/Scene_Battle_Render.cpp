@@ -9,8 +9,12 @@
 static constexpr float barWidth = 216.0f;
 static constexpr float statIconGap = 6.0f;
 static constexpr float statusRowHeight = 250.0f; // above the head, over the intent banner
-static constexpr float statusBadgeWidth = 110.0f;
+static constexpr float statusBadgeWidth = 110.0f; // one icon and its number
+static constexpr float statusIconOffset = 34.0f;  // from the left edge of a badge
+static constexpr float statusValueOffset = 82.0f;
 static constexpr float statusIconScale = 4.0f;
+static constexpr float infoBelowFeet = 46.0f; // health bar and Block sit just under the feet
+static constexpr float intentHeight = 180.0f; // the intent banner floats above the head
 static constexpr float intentBannerWidth = 216.0f;
 static constexpr float intentBannerHeight = 96.0f;
 static constexpr float intentIconOffset = 28.0f;
@@ -66,23 +70,25 @@ Color Scene_Battle::outlineFor(const std::shared_ptr<Entity> &actor) const
     return targeted ? CardColor(*card) : outlineColor;
 }
 
+void Scene_Battle::drawActor(const std::shared_ptr<Entity> &actor)
+{
+    const CAnimation &animation = actor->get<CAnimation>();
+    const CActor &data = actor->get<CActor>();
+    std::size_t frame = animation.animation.frame(animation.repeat);
+    Vector2 feet = actor->get<CTransform>().pos;
+    if (!data.fallen)
+    {
+        DrawSpriteOutline(animation.animation, frame, feet, data.flip, outlineFor(actor));
+    }
+    DrawSprite(animation.animation, frame, feet, data.flip, WHITE);
+}
+
 void Scene_Battle::drawActors()
 {
-    auto draw = [this](const std::shared_ptr<Entity> &actor) {
-        const CAnimation &animation = actor->get<CAnimation>();
-        const CActor &data = actor->get<CActor>();
-        std::size_t frame = animation.animation.frame(animation.repeat);
-        Vector2 feet = actor->get<CTransform>().pos;
-        if (!data.fallen)
-        {
-            DrawSpriteOutline(animation.animation, frame, feet, data.flip, outlineFor(actor));
-        }
-        DrawSprite(animation.animation, frame, feet, data.flip, WHITE);
-    };
-    draw(m_player);
+    drawActor(m_player);
     for (const std::shared_ptr<Entity> &enemy : getEnemies())
     {
-        draw(enemy);
+        drawActor(enemy);
     }
 }
 
@@ -110,7 +116,12 @@ static const char *IntentIcon(const std::shared_ptr<Entity> &enemy, IntentType t
 
 static Vector2 InfoPoint(Vector2 feet)
 {
-    return {feet.x, feet.y + 46.0f};
+    return {feet.x, feet.y + infoBelowFeet};
+}
+
+static Vector2 StatusPoint(Vector2 feet)
+{
+    return {feet.x, feet.y - statusRowHeight};
 }
 
 // One icon and number per active status, centered over an actor's head.
@@ -130,54 +141,79 @@ void Scene_Battle::drawStatuses(const std::shared_ptr<Entity> &actor, Vector2 ce
     float x = center.x - active.size() * statusBadgeWidth / 2.0f;
     for (StatusType type : active)
     {
-        DrawIcon(assets.getTexture(GetStatusDefinition(type).icon), {x + 34.0f, center.y}, statusIconScale, WHITE);
-        DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", status.amount(type)), {x + 82.0f, center.y - smallTextNudge}, smallText, textColor);
+        DrawIcon(assets.getTexture(GetStatusDefinition(type).icon), {x + statusIconOffset, center.y}, statusIconScale, WHITE);
+        DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", status.amount(type)),
+                         {x + statusValueOffset, center.y - smallTextNudge}, smallText, textColor);
         x += statusBadgeWidth;
+    }
+}
+
+void Scene_Battle::drawPlayerInfo()
+{
+    if (m_player->get<CActor>().fallen)
+    {
+        return;
+    }
+    Vector2 feet = m_player->get<CTransform>().pos;
+    int block = m_player->get<CBlock>().value;
+    if (block > 0)
+    {
+        DrawStatIcon(m_game->assets(), "Shield", InfoPoint(feet), block);
+    }
+    drawStatuses(m_player, StatusPoint(feet));
+}
+
+void Scene_Battle::drawIntent(const std::shared_ptr<Entity> &enemy)
+{
+    const Assets &assets = m_game->assets();
+    const CIntent &intent = enemy->get<CIntent>();
+    Vector2 feet = enemy->get<CTransform>().pos;
+    Vector2 center{feet.x, feet.y - intentHeight};
+    Rectangle banner{center.x - intentBannerWidth / 2.0f, center.y - intentBannerHeight / 2.0f, intentBannerWidth, intentBannerHeight};
+    DrawBox(assets.getBox("IntentBanner"), banner, WHITE);
+
+    // An attack shows the damage it will really deal after statuses.
+    int value = intent.value;
+    if (intent.type == IntentType::Attack)
+    {
+        value = modifyDamage(enemy, m_player, intent.value);
+    }
+    DrawIcon(assets.getTexture(IntentIcon(enemy, intent.type)), {center.x - intentIconOffset, center.y}, uiScale, WHITE);
+    DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value), {center.x + intentValueOffset, center.y - bigTextNudge}, bigText, textColor);
+}
+
+void Scene_Battle::drawEnemyInfo(const std::shared_ptr<Entity> &enemy)
+{
+    if (enemy->get<CActor>().fallen)
+    {
+        return;
+    }
+    const Assets &assets = m_game->assets();
+    Vector2 feet = enemy->get<CTransform>().pos;
+    Vector2 center = InfoPoint(feet);
+    const CHealth &health = enemy->get<CHealth>();
+    DrawHealthBar(assets, center, barWidth, health.hp, health.maxHp);
+
+    int block = enemy->get<CBlock>().value;
+    if (block > 0)
+    {
+        DrawStatIcon(assets, "Shield", {center.x - barWidth / 2.0f - statIconGap, center.y}, block);
+    }
+    drawStatuses(enemy, StatusPoint(feet));
+
+    // A dying enemy keeps its health bar until it has fallen, but no longer plans anything.
+    if (isAlive(enemy))
+    {
+        drawIntent(enemy);
     }
 }
 
 void Scene_Battle::drawActorInfo()
 {
-    const Assets &assets = m_game->assets();
-    if (!m_player->get<CActor>().fallen)
-    {
-        Vector2 center = InfoPoint(m_player->get<CTransform>().pos);
-        if (int block = m_player->get<CBlock>().value; block > 0)
-        {
-            DrawStatIcon(assets, "Shield", center, block);
-        }
-        Vector2 feet = m_player->get<CTransform>().pos;
-        drawStatuses(m_player, {feet.x, feet.y - statusRowHeight});
-    }
-
+    drawPlayerInfo();
     for (const std::shared_ptr<Entity> &enemy : getEnemies())
     {
-        if (enemy->get<CActor>().fallen)
-        {
-            continue;
-        }
-        Vector2 feet = enemy->get<CTransform>().pos;
-        Vector2 center = InfoPoint(feet);
-        const CHealth &health = enemy->get<CHealth>();
-        DrawHealthBar(assets, center, barWidth, health.hp, health.maxHp);
-        if (int block = enemy->get<CBlock>().value; block > 0)
-        {
-            DrawStatIcon(assets, "Shield", {center.x - barWidth / 2.0f - statIconGap, center.y}, block);
-        }
-        drawStatuses(enemy, {feet.x, feet.y - statusRowHeight});
-
-        if (isAlive(enemy))
-        {
-            const CIntent &intent = enemy->get<CIntent>();
-            Vector2 intentCenter{feet.x, feet.y - 180.0f};
-            Rectangle banner{intentCenter.x - intentBannerWidth / 2.0f, intentCenter.y - intentBannerHeight / 2.0f, intentBannerWidth, intentBannerHeight};
-            DrawBox(assets.getBox("IntentBanner"), banner, WHITE);
-            // An attack shows the damage it will really deal after statuses.
-            int value = intent.type == IntentType::Attack ? modifyDamage(enemy, m_player, intent.value) : intent.value;
-            DrawIcon(assets.getTexture(IntentIcon(enemy, intent.type)), {intentCenter.x - intentIconOffset, intentCenter.y}, uiScale, WHITE);
-            DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value),
-                             {intentCenter.x + intentValueOffset, intentCenter.y - bigTextNudge}, bigText, textColor);
-        }
+        drawEnemyInfo(enemy);
     }
 }
 
@@ -220,42 +256,67 @@ static void DrawPile(const Font &font, const char *label, int count, Vector2 cen
     DrawTextOutlined(font, TextFormat("%d", count), {center.x, center.y + pileCountOffset}, titleText, textColor);
 }
 
-void Scene_Battle::drawHud()
+void Scene_Battle::drawPiles()
 {
-    const Assets &assets = m_game->assets();
-    const Font &font = assets.getFont("Main");
-    const CHealth &health = m_player->get<CHealth>();
-
-    DrawPanel(assets, HudRect());
-    DrawOrb(assets, HealthCenter(), "OrbHealth", "HealthOrbFrame", false, health.hp, health.maxHp);
-    DrawOrb(assets, EnergyCenter(), "OrbEnergy", "EnergyOrbFrame", true, m_energy, startingEnergy);
-    DrawPile(font, "Draw", static_cast<int>(getPile(Zone::Draw).size()), {pileInset, HealthCenter().y});
+    const Font &font = m_game->assets().getFont("Main");
+    DrawPile(font, "Draw", pileSize(Zone::Draw), {pileInset, HealthCenter().y});
     Vector2 discardCenter{screenWidth - pileInset, EnergyCenter().y};
-    DrawPile(font, "Discard", static_cast<int>(getPile(Zone::Discard).size()), discardCenter);
-    int exhausted = static_cast<int>(getPile(Zone::Exhaust).size());
+    DrawPile(font, "Discard", pileSize(Zone::Discard), discardCenter);
+
+    int exhausted = pileSize(Zone::Exhaust);
     if (exhausted > 0)
     {
         DrawTextCenter(font, TextFormat("Exhaust %d", exhausted), {discardCenter.x, discardCenter.y + exhaustLabelOffset}, smallText, peachColor);
     }
+}
 
+void Scene_Battle::drawHand()
+{
     EntityVec hand = getPile(Zone::Hand);
     int count = static_cast<int>(hand.size());
     for (int i = 0; i < count; i++)
     {
         bool selected = hand[i] == m_selectedCard;
         bool playable = canPlayCard(hand[i], m_target);
-        DrawCardSlot(assets, hand[i]->get<CCard>().id, CardRect(i, count, selected), playable, selected);
+        DrawCardSlot(m_game->assets(), hand[i]->get<CCard>().id, CardRect(i, count, selected), playable, selected);
+    }
+}
+
+// Describes the selected card, or else the card under the mouse.
+void Scene_Battle::drawCardTooltip()
+{
+    std::shared_ptr<Entity> shown = m_selectedCard;
+    if (!shown)
+    {
+        shown = cardAt(GetMousePosition());
+    }
+    if (!shown)
+    {
+        return;
     }
 
-    std::shared_ptr<Entity> shown = m_selectedCard ? m_selectedCard : cardAt(GetMousePosition());
-    if (shown)
+    // Damage in the text includes Strength, Weak and the current target's Vulnerable.
+    const Card &card = GetCard(shown->get<CCard>().id);
+    std::shared_ptr<Entity> target;
+    if (card.target == Target::SingleEnemy && isAlive(m_target))
     {
-        // Damage in the text includes Strength, Weak and the current target's Vulnerable.
-        const Card &card = GetCard(shown->get<CCard>().id);
-        std::shared_ptr<Entity> target = card.target == Target::SingleEnemy && isAlive(m_target) ? m_target : nullptr;
-        auto damage = [&](int base) { return modifyDamage(m_player, target, base); };
-        DrawCardTooltip(assets, shown->get<CCard>().id, {screenWidth / 2.0f, HudRect().y - tooltipGap}, damage);
+        target = m_target;
     }
+    auto damage = [&](int base) { return modifyDamage(m_player, target, base); };
+    DrawCardTooltip(m_game->assets(), shown->get<CCard>().id, {screenWidth / 2.0f, HudRect().y - tooltipGap}, damage);
+}
+
+void Scene_Battle::drawHud()
+{
+    const Assets &assets = m_game->assets();
+    const CHealth &health = m_player->get<CHealth>();
+
+    DrawPanel(assets, HudRect());
+    DrawOrb(assets, HealthCenter(), "OrbHealth", "HealthOrbFrame", false, health.hp, health.maxHp);
+    DrawOrb(assets, EnergyCenter(), "OrbEnergy", "EnergyOrbFrame", true, m_energy, startingEnergy);
+    drawPiles();
+    drawHand();
+    drawCardTooltip();
 }
 
 void Scene_Battle::sRender()
@@ -277,11 +338,11 @@ void Scene_Battle::sRender()
         bool won = m_result == BattleResult::Won;
         DrawScreenShade(120);
         DrawTextOutlined(font, won ? "Victory" : "Defeat", {screenWidth / 2.0f, resultY}, hugeText, won ? goldColor : redColor);
-        DrawButton(assets, ContinueButton(), "Continue", true, isHeld(ContinueButton()));
+        DrawButton(assets, ContinueButton(), "Continue", ButtonStyle::Gold, isHeld(ContinueButton()));
         return;
     }
 
     drawHud();
-    DrawButton(assets, EndTurnButton(), "End Turn", true, isHeld(EndTurnButton()));
+    DrawButton(assets, EndTurnButton(), "End Turn", ButtonStyle::Gold, isHeld(EndTurnButton()));
     drawHint();
 }

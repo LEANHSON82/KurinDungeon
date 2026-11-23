@@ -5,6 +5,8 @@
 static constexpr bool exhausts = true;
 static constexpr bool notRewardable = false;
 
+// Columns: name, art, kind, cost, target, effects, exhaust, rewardable.
+// The last two are left out for an ordinary card: it does not exhaust and can be a reward.
 static const Card cards[]{
     {"Strike", "CardStrike", CardKind::Attack, 1, Target::SingleEnemy, {{EffectType::Damage, 6}}, false, notRewardable},
     {"Defend", "CardDefend", CardKind::Skill, 1, Target::Self, {{EffectType::Block, 5}}, false, notRewardable},

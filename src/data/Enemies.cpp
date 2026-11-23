@@ -2,6 +2,8 @@
 #include <cassert>
 #include <iterator>
 
+// Columns: name, sprites, maxHp, damage, block, buff, bossAbility, debuff, debuffAmount.
+// The last two are left out for an enemy that never debuffs.
 static const EnemyDefinition enemies[]{
     {"Slime", "Slime", 30, 6, 5, 2, false},
     {"Guardian", "Orc", 48, 8, 8, 3, false, StatusType::Vulnerable, 2},

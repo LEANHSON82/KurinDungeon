@@ -38,7 +38,7 @@ void Scene_Rest::update()
 
 void Scene_Rest::sDoAction(const Action &action)
 {
-    if ((action.name() == "REST" && action.type() == "START") || isClicked(action, RestButton()))
+    if (action.isStart("REST") || isClicked(action, RestButton()))
     {
         rest();
     }
@@ -59,5 +59,5 @@ void Scene_Rest::sRender()
     DrawIcon(assets.getTexture("Heart"), {screenWidth / 2.0f - 90.0f, panel.y + 430.0f}, uiScale, WHITE);
     DrawTextLeft(font, TextFormat("%d / %d", run.hp, run.maxHp), {screenWidth / 2.0f - 50.0f, panel.y + 398.0f}, bigText, textColor);
 
-    DrawButton(assets, RestButton(), TextFormat("Heal %d HP", restHeal), true, isHeld(RestButton()));
+    DrawButton(assets, RestButton(), TextFormat("Heal %d HP", restHeal), ButtonStyle::Gold, isHeld(RestButton()));
 }

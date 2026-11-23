@@ -9,4 +9,5 @@ void DrawBackground(Texture2D texture, Color tint);
 void DrawSprite(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color tint);
 void DrawSpriteOutline(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color color);
 void DrawBox(const BoxImage &image, Rectangle box, Color tint);
-void DrawStrip(Texture2D texture, Rectangle fromImage, Rectangle toScreen, Color tint);
+// Draws one rectangle of a texture into a rectangle on screen.
+void DrawPart(Texture2D texture, Rectangle fromImage, Rectangle toScreen, Color tint);

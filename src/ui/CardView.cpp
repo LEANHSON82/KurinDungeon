@@ -9,6 +9,21 @@
 static constexpr float tooltipMinWidth = 420.0f;
 static constexpr float tooltipPadding = 60.0f;
 static constexpr float tooltipHeight = 192.0f;
+static constexpr float tooltipNameY = 44.0f; // text lines, measured from the top of the tooltip
+static constexpr float tooltipKindY = 100.0f;
+static constexpr float tooltipEffectsY = 144.0f;
+static constexpr float costInset = 12.0f; // the cost number sits in the top left corner of a slot
+static constexpr float rowPadding = 30.0f;
+static constexpr float rowTextGap = 36.0f; // between the card picture and its text
+static constexpr float rowNameY = 24.0f;
+static constexpr float rowDetailsY = 88.0f;
+
+// A gold border, one art pixel wide, around a selected or highlighted card.
+static void DrawGoldOutline(Rectangle rect)
+{
+    Rectangle outline{rect.x - uiScale, rect.y - uiScale, rect.width + uiScale * 2, rect.height + uiScale * 2};
+    DrawRectangleRec(outline, goldColor);
+}
 
 void DrawCardSlot(const Assets &assets, CardId id, Rectangle rect, bool playable, bool selected)
 {
@@ -18,11 +33,10 @@ void DrawCardSlot(const Assets &assets, CardId id, Rectangle rect, bool playable
 
     if (selected)
     {
-        Rectangle outline{rect.x - uiScale, rect.y - uiScale, rect.width + uiScale * 2, rect.height + uiScale * 2};
-        DrawRectangleRec(outline, goldColor);
+        DrawGoldOutline(rect);
     }
     DrawIcon(assets.getTexture(card.art), center, slotScale, tint);
-    DrawNumber(assets, card.cost, {rect.x + 12.0f, rect.y + 12.0f}, detailScale, playable ? WHITE : GRAY);
+    DrawNumber(assets, card.cost, {rect.x + costInset, rect.y + costInset}, detailScale, playable ? WHITE : GRAY);
 }
 
 void DrawCardTooltip(const Assets &assets, CardId id, Vector2 bottomCenter, const std::function<int(int)> &damage)
@@ -36,9 +50,9 @@ void DrawCardTooltip(const Assets &assets, CardId id, Vector2 bottomCenter, cons
     DrawPanel(assets, box);
 
     float x = box.x + box.width / 2.0f;
-    DrawTextOutlined(font, card.name, {x, box.y + 44.0f}, bigText, goldColor);
-    DrawTextCenter(font, TextFormat("%s - Cost %d", GetKindName(card.kind), card.cost), {x, box.y + 100.0f}, smallText, peachColor);
-    DrawTextCenter(font, effects.c_str(), {x, box.y + 144.0f}, smallText, textColor);
+    DrawTextOutlined(font, card.name, {x, box.y + tooltipNameY}, bigText, goldColor);
+    DrawTextCenter(font, TextFormat("%s - Cost %d", GetKindName(card.kind), card.cost), {x, box.y + tooltipKindY}, smallText, peachColor);
+    DrawTextCenter(font, effects.c_str(), {x, box.y + tooltipEffectsY}, smallText, textColor);
 }
 
 void DrawCardRow(const Assets &assets, CardId id, Rectangle rect, bool highlighted)
@@ -47,16 +61,15 @@ void DrawCardRow(const Assets &assets, CardId id, Rectangle rect, bool highlight
     const Font &font = assets.getFont("Main");
     if (highlighted)
     {
-        Rectangle outline{rect.x - uiScale, rect.y - uiScale, rect.width + uiScale * 2, rect.height + uiScale * 2};
-        DrawRectangleRec(outline, goldColor);
+        DrawGoldOutline(rect);
     }
     DrawPanel(assets, rect);
 
-    Rectangle slot{rect.x + 30.0f, rect.y + (rect.height - slotSize) / 2.0f, slotSize, slotSize};
+    Rectangle slot{rect.x + rowPadding, rect.y + (rect.height - slotSize) / 2.0f, slotSize, slotSize};
     DrawCardSlot(assets, id, slot, true, false);
 
-    float textX = slot.x + slot.width + 36.0f;
+    float textX = slot.x + slot.width + rowTextGap;
     std::string details = std::string(GetKindName(card.kind)) + " - " + DescribeEffects(card);
-    DrawTextLeft(font, card.name, {textX, rect.y + 24.0f}, bigText, highlighted ? goldColor : textColor);
-    DrawTextLeft(font, details.c_str(), {textX, rect.y + 88.0f}, smallText, peachColor);
+    DrawTextLeft(font, card.name, {textX, rect.y + rowNameY}, bigText, highlighted ? goldColor : textColor);
+    DrawTextLeft(font, details.c_str(), {textX, rect.y + rowDetailsY}, smallText, peachColor);
 }

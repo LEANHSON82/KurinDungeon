@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <sstream>
 #include <string>
 #include <raylib.h>
 #include "engine/Animation.h"
@@ -29,11 +30,13 @@ class Assets
     Texture2D loadTexture(const std::string &file, int filter);
     Texture2D loadSilhouette(const std::string &file);
 
-    void addTexture(const std::string &name, const std::string &file, int filter);
-    void addBox(const std::string &name, const std::string &file, Rectangle part, float cornerX, float cornerY);
-    void addAnimation(const std::string &name, const std::string &sheet, const std::string &plainSheet, int speed);
-    void addFont(const std::string &name, const std::string &file, int size);
-    void addSound(const std::string &name, const std::string &file);
+    // Each of these reads the columns of one line of the asset list and loads that asset.
+    void addTexture(const std::string &name, std::istringstream &words);
+    void addBox(const std::string &name, std::istringstream &words);
+    void addAnimation(const std::string &name, std::istringstream &words);
+    void addFont(const std::string &name, std::istringstream &words);
+    void addSound(const std::string &name, std::istringstream &words);
+    void loadLine(const std::string &line);
 
 public:
     // folder holds assets.txt; paths inside it are relative to that folder.

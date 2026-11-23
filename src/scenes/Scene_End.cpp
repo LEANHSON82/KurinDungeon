@@ -27,7 +27,7 @@ void Scene_End::update()
 
 void Scene_End::sDoAction(const Action &action)
 {
-    if ((action.name() == "MENU" && action.type() == "START") || isClicked(action, MenuButton()))
+    if (action.isStart("MENU") || isClicked(action, MenuButton()))
     {
         m_game->changeScene("MENU", std::make_shared<Scene_Menu>(m_game), true);
     }
@@ -46,5 +46,5 @@ void Scene_End::sRender()
     std::string message = m_won ? std::string("The ") + GetEnemyDefinition(bossEnemy).name + " has fallen." : "Your run ends here.";
     DrawTextCenter(font, message.c_str(), {screenWidth / 2.0f, 540.0f}, bigText, peachColor);
 
-    DrawButton(assets, MenuButton(), "Back to menu", true, isHeld(MenuButton()));
+    DrawButton(assets, MenuButton(), "Back to menu", ButtonStyle::Gold, isHeld(MenuButton()));
 }

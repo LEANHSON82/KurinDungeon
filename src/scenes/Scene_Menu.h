@@ -3,9 +3,6 @@
 
 class Scene_Menu : public Scene
 {
-    Rectangle playButton() const;
-    Rectangle exitButton() const;
-
 public:
     explicit Scene_Menu(GameEngine *game);
     void update() override;

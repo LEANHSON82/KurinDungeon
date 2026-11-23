@@ -15,8 +15,9 @@ bool IsHovered(Rectangle rect)
     return CheckCollisionPointRec(GetMousePosition(), rect);
 }
 
-void DrawButton(const Assets &assets, Rectangle rect, const char *label, bool gold, bool held)
+void DrawButton(const Assets &assets, Rectangle rect, const char *label, ButtonStyle style, bool held)
 {
+    bool gold = style == ButtonStyle::Gold;
     std::string box = gold ? "GoldButton" : "Button";
     if (IsHovered(rect))
     {
@@ -41,11 +42,20 @@ void DrawHealthBar(const Assets &assets, Vector2 center, float width, int hp, in
     Rectangle frame{center.x - width / 2.0f, center.y - height / 2.0f, width, height};
     DrawBox(assets.getBox("HealthFrame"), frame, WHITE);
 
-    Texture2D fill = assets.getTexture("HealthFill");
-    Rectangle channel{frame.x + 3 * uiScale, frame.y + 3 * uiScale, frame.width - 6 * uiScale, frame.height - 7 * uiScale};
+    // The channel is the hollow inside of the frame art, whose border is 3 art pixels thick
+    // (4 at the bottom).
+    const float border = 3 * uiScale;
+    const float bottomBorder = 4 * uiScale;
+    Rectangle channel{frame.x + border, frame.y + border, frame.width - border * 2, frame.height - border - bottomBorder};
     float filled = maxHp > 0 ? channel.width * std::clamp(hp, 0, maxHp) / maxHp : 0.0f;
-    DrawStrip(fill, {5, 7, 38, 1}, {channel.x, channel.y, filled, uiScale}, WHITE);
-    DrawStrip(fill, {5, 8, 38, 1}, {channel.x, channel.y + uiScale, filled, channel.height - uiScale}, WHITE);
+
+    // The fill art is two rows of pixels: a light row on top of a plain one. The light row
+    // stays one art pixel high, the plain row stretches over the rest of the channel.
+    Texture2D fill = assets.getTexture("HealthFill");
+    const Rectangle lightRow{5, 7, 38, 1};
+    const Rectangle plainRow{5, 8, 38, 1};
+    DrawPart(fill, lightRow, {channel.x, channel.y, filled, uiScale}, WHITE);
+    DrawPart(fill, plainRow, {channel.x, channel.y + uiScale, filled, channel.height - uiScale}, WHITE);
 
     Vector2 textCenter{center.x, channel.y + channel.height / 2.0f - smallTextNudge};
     DrawTextOutlined(assets.getFont("Main"), TextFormat("%d/%d", hp, maxHp), textCenter, smallText, textColor);
@@ -55,7 +65,8 @@ void DrawNumber(const Assets &assets, int value, Vector2 center, float scale, Co
 {
     std::string text = std::to_string(std::max(0, value));
     int count = static_cast<int>(text.size());
-    float step = 11.0f * scale;
+    const float digitPitch = 11.0f; // art pixels from one digit to the next
+    float step = digitPitch * scale;
     float x = center.x - step * (count - 1) / 2.0f;
     for (int i = 0; i < count; i++)
     {
@@ -67,16 +78,23 @@ void DrawNumber(const Assets &assets, int value, Vector2 center, float scale, Co
 
 void DrawOrb(const Assets &assets, Vector2 center, const char *fill, const char *frame, bool frameOnRight, int value, int maxValue)
 {
-    const float size = 48.0f * detailScale;
+    // The orb art is 48 x 48 pixels and its liquid fills the rows from 5 down to 43.
+    const float artSize = 48.0f;
+    const float liquidTop = 5.0f;
+    const float liquidHeight = 38.0f;
+    const float frameShift = 16.0f; // the decorated frame hangs off one side of the orb
+    const float size = artSize * detailScale;
+
+    // Only the lower part of the liquid is drawn: the emptier the orb, the lower it starts.
     float full = maxValue > 0 ? std::clamp(static_cast<float>(value) / maxValue, 0.0f, 1.0f) : 0.0f;
-    float top = 5.0f + 38.0f * (1.0f - full);
+    float top = liquidTop + liquidHeight * (1.0f - full);
 
     DrawIcon(assets.getTexture("OrbEmpty"), center, detailScale, WHITE);
-    Rectangle fromImage{0.0f, top, 48.0f, 48.0f - top};
-    Rectangle toScreen{center.x - size / 2.0f, center.y - size / 2.0f + top * detailScale, size, (48.0f - top) * detailScale};
-    DrawStrip(assets.getTexture(fill), fromImage, toScreen, WHITE);
+    Rectangle fromImage{0.0f, top, artSize, artSize - top};
+    Rectangle toScreen{center.x - size / 2.0f, center.y - size / 2.0f + top * detailScale, size, (artSize - top) * detailScale};
+    DrawPart(assets.getTexture(fill), fromImage, toScreen, WHITE);
 
-    float frameOffset = (frameOnRight ? 16.0f : -16.0f) * detailScale;
+    float frameOffset = (frameOnRight ? frameShift : -frameShift) * detailScale;
     DrawIcon(assets.getTexture(frame), {center.x + frameOffset, center.y}, detailScale, WHITE);
     DrawTextOutlined(assets.getFont("Main"), TextFormat("%d/%d", value, maxValue), {center.x, center.y - bigTextNudge}, bigText, textColor);
 }

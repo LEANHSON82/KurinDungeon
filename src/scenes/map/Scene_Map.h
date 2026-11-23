@@ -20,6 +20,7 @@ class Scene_Map : public Scene
     const char *describeState(const std::shared_ptr<Entity> &room) const;
     void drawPaths() const;
     void drawRooms(const std::shared_ptr<Entity> &hovered) const;
+    void drawRoom(const std::shared_ptr<Entity> &entity, bool hovered, float wave) const;
     void drawRoomInfo(const std::shared_ptr<Entity> &room) const;
     void drawLegend() const;
 

@@ -21,7 +21,9 @@ class MapGenerator
 
     std::shared_ptr<Entity> addRoom(RoomType type, int floor, int column);
     void addLink(const std::shared_ptr<Entity> &from, const std::shared_ptr<Entity> &to);
-    int pickNextColumn(const RoomGrid &grid, std::mt19937 &rng, int floor, int column) const;
+    int pickNextColumn(const RoomGrid &grid, std::mt19937 &rng, int fromFloor, int column) const;
+    void addPath(RoomGrid &grid, std::mt19937 &rng, int firstColumn);
+    void addBoss(const RoomGrid &grid);
     bool hasRestParent(const std::shared_ptr<Entity> &room) const;
     void assignRooms(std::mt19937 &rng);
     void generateMap(std::uint32_t seed);

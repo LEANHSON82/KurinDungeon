@@ -36,7 +36,7 @@ enum class CardKind
 {
     Attack,
     Skill,
-    // Lasting effects arrive with statuses; a played Power leaves the deck for the battle.
+    // Its effect lasts the whole battle, so a played Power leaves the deck until the battle ends.
     Power,
 };
 

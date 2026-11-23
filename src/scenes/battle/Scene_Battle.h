@@ -65,7 +65,10 @@ class Scene_Battle : public Scene
     void moveToZone(const std::shared_ptr<Entity> &card, Zone zone);
     void discardHand();
     void startPlayerTurn();
+    void applyEffectToPlayer(const Card &card, const Effect &effect);
+    void applyEffectToEnemy(const Effect &effect, const std::shared_ptr<Entity> &enemy);
     void sEnemyTurn();
+    void performIntent(const std::shared_ptr<Entity> &enemy);
     void dealDamage(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int amount);
     void gainBlock(const std::shared_ptr<Entity> &source, const std::shared_ptr<Entity> &target, int amount);
     void loseHp(const std::shared_ptr<Entity> &target, int amount);
@@ -79,6 +82,11 @@ class Scene_Battle : public Scene
     void logBattle(const std::string &label);
 
     // Input
+    void doResultAction(const Action &action);
+    void doLeftClick(Vector2 point);
+    void targetEnemyAt(Vector2 point);
+    void selectHandCard(int index);
+    void confirmSelectedCard();
     void toggleCard(const std::shared_ptr<Entity> &card);
     void playSelectedCard(const std::shared_ptr<Entity> &target);
     void clickBattlefield(Vector2 point);
@@ -100,11 +108,18 @@ class Scene_Battle : public Scene
     const Card *selectedCard() const;
     Color outlineFor(const std::shared_ptr<Entity> &actor) const;
     void drawActors();
+    void drawActor(const std::shared_ptr<Entity> &actor);
     void drawActorInfo();
+    void drawPlayerInfo();
+    void drawEnemyInfo(const std::shared_ptr<Entity> &enemy);
+    void drawIntent(const std::shared_ptr<Entity> &enemy);
     void drawStatuses(const std::shared_ptr<Entity> &actor, Vector2 center);
     void drawFloatingTexts();
     void drawHint();
     void drawHud();
+    void drawPiles();
+    void drawHand();
+    void drawCardTooltip();
 
 public:
     Scene_Battle(GameEngine *game, const std::vector<EnemyId> &enemies, bool isBoss);
@@ -126,6 +141,7 @@ public:
     bool isPlayingBack() const;
 
     EntityVec getPile(Zone zone);
+    int pileSize(Zone zone);
     const EntityVec &getEnemies() { return m_entityManager.getEntities("enemy"); }
     const EntityVec &getCards() { return m_entityManager.getEntities("card"); }
     std::shared_ptr<Entity> player() const { return m_player; }

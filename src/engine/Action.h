@@ -16,6 +16,8 @@ public:
     Action(const std::string &name, const std::string &type, Vector2 pos) : m_name(name), m_type(type), m_pos(pos) {}
 
     const std::string &name() const { return m_name; }
+    // True when this is the "START" event (key or button going down) of the given action.
+    bool isStart(const std::string &actionName) const { return m_name == actionName && m_type == "START"; }
     const std::string &type() const { return m_type; }
     Vector2 pos() const { return m_pos; }
 };

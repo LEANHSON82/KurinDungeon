@@ -16,11 +16,16 @@ Scene_Logo::Scene_Logo(GameEngine *game) : Scene(game)
     registerAction(KEY_ENTER, "SKIP");
 }
 
+void Scene_Logo::goToMenu()
+{
+    m_game->changeScene("MENU", std::make_shared<Scene_Menu>(m_game), true);
+}
+
 void Scene_Logo::update()
 {
     if (m_currentFrame >= logoFrames)
     {
-        m_game->changeScene("MENU", std::make_shared<Scene_Menu>(m_game), true);
+        goToMenu();
     }
     sRender();
     m_currentFrame++;
@@ -28,10 +33,9 @@ void Scene_Logo::update()
 
 void Scene_Logo::sDoAction(const Action &action)
 {
-    bool skip = action.name() == "SKIP" || action.name() == "LEFT_CLICK";
-    if (skip && action.type() == "START")
+    if (action.isStart("SKIP") || action.isStart("LEFT_CLICK"))
     {
-        m_game->changeScene("MENU", std::make_shared<Scene_Menu>(m_game), true);
+        goToMenu();
     }
 }
 
@@ -39,7 +43,10 @@ void Scene_Logo::sRender()
 {
     const Assets &assets = m_game->assets();
     float frame = static_cast<float>(m_currentFrame);
-    float alpha = std::min(std::clamp(frame / fadeInFrames, 0.0f, 1.0f), std::clamp((logoFrames - frame) / fadeOutFrames, 0.0f, 1.0f));
+    // The logo fades in at the start and out again at the end.
+    float fadeIn = std::clamp(frame / fadeInFrames, 0.0f, 1.0f);
+    float fadeOut = std::clamp((logoFrames - frame) / fadeOutFrames, 0.0f, 1.0f);
+    float alpha = std::min(fadeIn, fadeOut);
 
     ClearBackground(shadeColor);
     Texture2D logo = assets.getTexture("Logo");
