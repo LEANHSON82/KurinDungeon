@@ -6,6 +6,7 @@
 #   Sound     Name file
 
 Font Main fonts/jersey10.ttf 20
+Font Title fonts/fantasy_rpg_title.ttf 13
 
 # The logo is a large painting shown scaled down, so it is filtered smoothly.
 Texture Logo images/branding/kurin-logo.png smooth
@@ -35,7 +36,6 @@ Texture Heart images/ui/mini_icons/Icon_03.png
 Texture Shield images/ui/mini_icons/Icon_10.png
 Texture Star images/ui/mini_icons/Icon_01.png
 Texture Sword images/ui/mini_icons/Icon_09.png
-Texture Skull images/ui/mini_icons/Icon_06.png
 Texture StatusWeak images/ui/mini_icons/Icon_02.png
 Texture StatusVulnerable images/ui/mini_icons/Icon_31.png
 Texture Digit0 images/icons/base/201_number_0.png
@@ -69,8 +69,12 @@ Texture CardCrushingBlow images/icons/spells/053_thunder_smash.png
 Texture CardMenace images/icons/spells/180_curse.png
 Texture CardBattleCry images/icons/spells/204_battlecry.png
 
+# Map icons all come from the same set, so every room has the same size and outline.
 Texture RoomStart images/icons/base/276_home.png
+Texture RoomCombat images/icons/base/012_steel_sword.png
 Texture RoomRest images/icons/base/141_fire.png
+Texture RoomBoss images/icons/base/137_skull_big.png
+Texture MapHero images/icons/base/060_steel_helmet.png
 
 Box DarkBox images/ui/background_boxes/BGbox_01B.png 6 6 36 36 10 10
 Box Button images/ui/buttons/Button_01A_Normal.png 0 0 48 16 5 7
@@ -83,7 +87,7 @@ Box HealthFrame images/ui/sliders_bars/Slider01_Box.png 1 4 46 9 4 4
 Box IntentBanner images/ui/title_banners/BannerSmall_01A.png 0 2 48 13 8 6
 Box VictoryRibbon images/ui/title_banners/BannerMedium_02C.png 2 8 44 17 14 8
 Box DefeatRibbon images/ui/title_banners/BannerMedium_02B.png 2 8 44 17 14 8
-Box MapPaper images/ui/background_boxes/BGbox_04B.png 3 4 42 40 20 19
+Box MapPaper images/ui/background_boxes/BGbox_04C.png 3 4 42 40 20 19
 
 Texture HealthFill images/ui/sliders_bars/Slider01_Bar02.png
 Texture HealthOrbFrame images/ui/resource_orbs/DecoratedFrame1_Left.png

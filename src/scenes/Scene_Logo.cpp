@@ -61,6 +61,6 @@ void Scene_Logo::sRender()
     }
     else
     {
-        DrawTextCenter(assets.getFont("Main"), "Kurin", {screenWidth / 2.0f, screenHeight / 2.0f}, logoText, Fade(goldColor, alpha));
+        DrawTextCenter(assets.getFont("Title"), "KURIN", {screenWidth / 2.0f, screenHeight / 2.0f}, logoText, Fade(goldColor, alpha));
     }
 }

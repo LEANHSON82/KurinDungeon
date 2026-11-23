@@ -6,14 +6,17 @@
 #include "ui/Text.h"
 #include "ui/Widget.h"
 
-static Rectangle Panel()
-{
-    return CenteredRect(220.0f, 720.0f, 520.0f);
-}
+// The hero rests by a campfire in the middle of the screen, with the HP readout and the
+// button below.
+static constexpr Vector2 heroFeet{780.0f, 620.0f};
+static constexpr Vector2 fireCenter{1180.0f, 540.0f};
+static constexpr float fireScale = 12.0f;
+static constexpr float healthY = 740.0f;
+static constexpr float heartScale = 5.0f;
 
 static Rectangle RestButton()
 {
-    return CenteredRect(800.0f, 384.0f, buttonHeight);
+    return CenteredRect(840.0f, 400.0f, buttonHeight);
 }
 
 Scene_Rest::Scene_Rest(GameEngine *game) : Scene(game), m_heroIdle(game->assets().getAnimation("KnightIdle"))
@@ -51,13 +54,12 @@ void Scene_Rest::sRender()
     const Run &run = m_game->currentRun();
     DrawSceneBackdrop(assets, "Graveyard", 120, "Rest");
 
-    Rectangle panel = Panel();
-    DrawPanel(assets, panel);
-    DrawSprite(m_heroIdle, m_heroIdle.frame(true), {screenWidth / 2.0f - 110.0f, panel.y + 320.0f}, false, WHITE);
-    DrawIcon(assets.getTexture("RoomRest"), {screenWidth / 2.0f + 110.0f, panel.y + 270.0f}, uiScale, WHITE);
+    DrawBottomShade(heroFeet.y);
+    DrawPortrait(m_heroIdle, m_heroIdle.frame(true), heroFeet);
+    DrawIcon(assets.getTexture("RoomRest"), fireCenter, fireScale, WHITE);
 
-    DrawIcon(assets.getTexture("Heart"), {screenWidth / 2.0f - 90.0f, panel.y + 430.0f}, uiScale, WHITE);
-    DrawTextLeft(font, TextFormat("%d / %d", run.hp, run.maxHp), {screenWidth / 2.0f - 50.0f, panel.y + 398.0f}, bigText, textColor);
+    DrawIcon(assets.getTexture("Heart"), {screenWidth / 2.0f - 110.0f, healthY}, heartScale, WHITE);
+    DrawTextOutlined(font, TextFormat("%d / %d", run.hp, run.maxHp), {screenWidth / 2.0f + 40.0f, healthY - bigTextNudge}, bigText, textColor);
 
     DrawButton(assets, RestButton(), TextFormat("Heal %d HP", restHeal), ButtonStyle::Gold, isHeld(RestButton()));
 }

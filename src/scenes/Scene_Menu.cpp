@@ -8,12 +8,12 @@
 
 static Rectangle PlayButton()
 {
-    return CenteredRect(600.0f, 336.0f, buttonHeight);
+    return CenteredRect(640.0f, 360.0f, buttonHeight);
 }
 
 static Rectangle ExitButton()
 {
-    return CenteredRect(720.0f, 336.0f, buttonHeight);
+    return CenteredRect(750.0f, 360.0f, buttonHeight);
 }
 
 Scene_Menu::Scene_Menu(GameEngine *game) : Scene(game)
@@ -44,9 +44,8 @@ void Scene_Menu::sRender()
     const Assets &assets = m_game->assets();
     const Font &font = assets.getFont("Main");
     DrawSceneBackdrop(assets, "Dungeon", 120);
-    DrawTextOutlined(font, "KURIN", {screenWidth / 2.0f, 340.0f}, logoText, goldColor);
-    DrawTextOutlined(font, "A dungeon deckbuilder", {screenWidth / 2.0f, 460.0f}, bigText, peachColor);
-    DrawPanel(assets, CenteredRect(560.0f, 480.0f, 300.0f));
+    DrawHeading(assets.getFont("Title"), "KURIN", {screenWidth / 2.0f, 320.0f}, logoText, goldColor);
+    DrawTextOutlined(font, "A dungeon deckbuilder", {screenWidth / 2.0f, 500.0f}, bigText, peachColor);
     DrawButton(assets, PlayButton(), "Play", ButtonStyle::Gold, isHeld(PlayButton()));
     DrawButton(assets, ExitButton(), "Exit", ButtonStyle::Plain, isHeld(ExitButton()));
 }

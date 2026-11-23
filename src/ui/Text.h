@@ -4,3 +4,5 @@
 void DrawTextLeft(const Font &font, const char *text, Vector2 topLeft, float size, Color color);
 void DrawTextCenter(const Font &font, const char *text, Vector2 center, float size, Color color);
 void DrawTextOutlined(const Font &font, const char *text, Vector2 center, float size, Color color);
+// Outlined text in the title font, for screen titles and names.
+void DrawHeading(const Font &titleFont, const char *text, Vector2 center, float size, Color color);

@@ -39,10 +39,10 @@ void Scene_End::sRender()
     const Font &font = assets.getFont("Main");
     DrawSceneBackdrop(assets, "Dungeon", 150);
 
-    Rectangle ribbon = CenteredRect(330.0f, 840.0f, 17.0f * uiScale);
+    Rectangle ribbon = CenteredRect(310.0f, 900.0f, 120.0f);
     DrawBox(assets.getBox(m_won ? "VictoryRibbon" : "DefeatRibbon"), ribbon, WHITE);
     Vector2 titleCenter{screenWidth / 2.0f, ribbon.y + ribbon.height / 2.0f - titleTextNudge};
-    DrawTextOutlined(font, m_won ? "Victory" : "Game Over", titleCenter, titleText, textColor);
+    DrawHeading(assets.getFont("Title"), m_won ? "Victory" : "Game Over", titleCenter, headingText, textColor);
     std::string message = m_won ? std::string("The ") + GetEnemyDefinition(bossEnemy).name + " has fallen." : "Your run ends here.";
     DrawTextCenter(font, message.c_str(), {screenWidth / 2.0f, 540.0f}, bigText, peachColor);
 

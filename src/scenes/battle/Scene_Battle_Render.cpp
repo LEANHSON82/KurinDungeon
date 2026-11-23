@@ -27,6 +27,10 @@ static constexpr float tooltipGap = 12.0f;
 static constexpr float floorShadeTop = 560.0f;
 static constexpr float turnLabelY = 54.0f;
 static constexpr float resultY = 400.0f;
+static constexpr int hudFadeHeight = 90; // how far above the bar the floor starts to darken
+static constexpr int hudRuleHeight = 4;
+static constexpr Color hudBarColor{18, 12, 26, 240};
+static constexpr Color hudRuleColor{240, 181, 65, 255};
 
 const Card *Scene_Battle::selectedCard() const
 {
@@ -94,7 +98,7 @@ void Scene_Battle::drawActors()
 
 static void DrawStatIcon(const Assets &assets, const char *icon, Vector2 center, int value)
 {
-    DrawIcon(assets.getTexture(icon), center, uiScale, WHITE);
+    DrawIcon(assets.getTexture(icon), center, iconScale, WHITE);
     DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value), {center.x, center.y - smallTextNudge}, smallText, textColor);
 }
 
@@ -178,7 +182,7 @@ void Scene_Battle::drawIntent(const std::shared_ptr<Entity> &enemy)
     {
         value = modifyDamage(enemy, m_player, intent.value);
     }
-    DrawIcon(assets.getTexture(IntentIcon(enemy, intent.type)), {center.x - intentIconOffset, center.y}, uiScale, WHITE);
+    DrawIcon(assets.getTexture(IntentIcon(enemy, intent.type)), {center.x - intentIconOffset, center.y}, iconScale, WHITE);
     DrawTextOutlined(assets.getFont("Main"), TextFormat("%d", value), {center.x + intentValueOffset, center.y - bigTextNudge}, bigText, textColor);
 }
 
@@ -306,12 +310,24 @@ void Scene_Battle::drawCardTooltip()
     DrawCardTooltip(m_game->assets(), shown->get<CCard>().id, {screenWidth / 2.0f, HudRect().y - tooltipGap}, damage);
 }
 
+// The bar under the battlefield: the floor fades into darkness, closed off by a gold rule.
+// Nothing is boxed in, so the hand and the orbs seem to sit in the shadow at the player's feet.
+static void DrawHudBar()
+{
+    int top = static_cast<int>(hudTop);
+    Color clear{hudBarColor.r, hudBarColor.g, hudBarColor.b, 0};
+    DrawRectangleGradientV(0, top - hudFadeHeight, screenWidth, hudFadeHeight, clear, hudBarColor);
+    DrawRectangle(0, top, screenWidth, screenHeight - top, hudBarColor);
+    DrawRectangle(0, top, screenWidth, hudRuleHeight, hudRuleColor);
+    DrawRectangle(0, top + hudRuleHeight, screenWidth, hudRuleHeight, inkColor);
+}
+
 void Scene_Battle::drawHud()
 {
     const Assets &assets = m_game->assets();
     const CHealth &health = m_player->get<CHealth>();
 
-    DrawPanel(assets, HudRect());
+    DrawHudBar();
     DrawOrb(assets, HealthCenter(), "OrbHealth", "HealthOrbFrame", false, health.hp, health.maxHp);
     DrawOrb(assets, EnergyCenter(), "OrbEnergy", "EnergyOrbFrame", true, m_energy, startingEnergy);
     drawPiles();
@@ -337,7 +353,7 @@ void Scene_Battle::sRender()
     {
         bool won = m_result == BattleResult::Won;
         DrawScreenShade(120);
-        DrawTextOutlined(font, won ? "Victory" : "Defeat", {screenWidth / 2.0f, resultY}, hugeText, won ? goldColor : redColor);
+        DrawHeading(assets.getFont("Title"), won ? "Victory" : "Defeat", {screenWidth / 2.0f, resultY}, bannerText, won ? goldColor : redColor);
         DrawButton(assets, ContinueButton(), "Continue", ButtonStyle::Gold, isHeld(ContinueButton()));
         return;
     }

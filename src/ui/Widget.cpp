@@ -38,7 +38,7 @@ void DrawPanel(const Assets &assets, Rectangle rect)
 
 void DrawHealthBar(const Assets &assets, Vector2 center, float width, int hp, int maxHp)
 {
-    const float height = 72.0f;
+    const float height = 56.0f;
     Rectangle frame{center.x - width / 2.0f, center.y - height / 2.0f, width, height};
     DrawBox(assets.getBox("HealthFrame"), frame, WHITE);
 
@@ -117,6 +117,6 @@ void DrawSceneBackdrop(const Assets &assets, const char *background, unsigned ch
     DrawScreenShade(shade);
     if (title != nullptr)
     {
-        DrawTextOutlined(assets.getFont("Main"), title, {screenWidth / 2.0f, titleY}, titleText, goldColor);
+        DrawHeading(assets.getFont("Title"), title, {screenWidth / 2.0f, titleY}, headingText, goldColor);
     }
 }

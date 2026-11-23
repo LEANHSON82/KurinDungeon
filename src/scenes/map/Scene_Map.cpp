@@ -10,18 +10,26 @@
 #include "ui/Widget.h"
 
 static constexpr float roomRadius = 48.0f;
-static constexpr float floorGap = 112.0f;
-static constexpr float columnGap = 170.0f;
-static constexpr float bottomY = 1000.0f;
-static constexpr float mapCenterX = 900.0f;
+static constexpr float floorGap = 114.0f;
+static constexpr float columnGap = 220.0f;
+static constexpr float bottomY = 1004.0f;
+static constexpr float mapCenterX = 960.0f;
 
-static constexpr Rectangle paperRect{460.0f, 24.0f, 880.0f, 1032.0f};
-static constexpr Rectangle legendRect{1420.0f, 300.0f, 400.0f, 420.0f};
-static constexpr Rectangle healthPanel{60.0f, 60.0f, 340.0f, 120.0f};
+// The map is one big sheet of paper in the middle of the screen; the player's HP and the
+// legend sit beside it.
+static constexpr Rectangle paperRect{440.0f, 16.0f, 1040.0f, 1048.0f};
+static constexpr Rectangle legendRect{1530.0f, 270.0f, 330.0f, 540.0f};
+static constexpr Rectangle healthPanel{60.0f, 40.0f, 320.0f, 120.0f};
+static constexpr float roomIconScale = 4.0f;
+static constexpr float bossIconScale = 6.0f;
+// The paper art is nearly white; this tint turns it into old parchment.
+static constexpr Color paperTint{242, 200, 164, 255};
+static constexpr Color backdropTop{46, 34, 60, 255};
+static constexpr Color backdropBottom{14, 10, 20, 255};
 static constexpr Color walkedColor{173, 47, 69, 255};
-static constexpr Color goldRing{240, 181, 65, 255};
+static constexpr Color goldRing{226, 122, 36, 255};
 static constexpr Color clearedTint{170, 150, 150, 200};
-static constexpr Color lockedTint{150, 140, 150, 110};
+static constexpr Color lockedTint{120, 100, 110, 200};
 
 Scene_Map::Scene_Map(GameEngine *game) : Scene(game)
 {
@@ -167,19 +175,10 @@ void Scene_Map::sDoAction(const Action &action)
 // ---------------------------------------------------------------------------
 // Drawing
 
+// Every room icon is the same size, except the boss, which is the goal of the map.
 static float RoomIconScale(RoomType type)
 {
-    switch (type)
-    {
-    case RoomType::Start:
-    case RoomType::Rest:
-        return detailScale;
-    case RoomType::Combat:
-        return uiScale;
-    case RoomType::Boss:
-        return 10.0f;
-    }
-    return uiScale;
+    return type == RoomType::Boss ? bossIconScale : roomIconScale;
 }
 
 static const char *RoomIcon(RoomType type)
@@ -189,13 +188,13 @@ static const char *RoomIcon(RoomType type)
     case RoomType::Start:
         return "RoomStart";
     case RoomType::Combat:
-        return "Sword";
+        return "RoomCombat";
     case RoomType::Rest:
         return "RoomRest";
     case RoomType::Boss:
-        return "Skull";
+        return "RoomBoss";
     }
-    return "Sword";
+    return "RoomCombat";
 }
 
 static const char *RoomName(RoomType type)
@@ -325,7 +324,7 @@ void Scene_Map::drawPaths() const
             }
             else
             {
-                DrawPath(from, to, 6, Fade(inkColor, 0.3f));
+                DrawPath(from, to, 6, Fade(inkColor, 0.55f));
             }
         }
     }
@@ -351,8 +350,10 @@ void Scene_Map::drawRoom(const std::shared_ptr<Entity> &entity, bool hovered, fl
 
     if (entity == m_currentRoom)
     {
-        DrawRoomRing(position, roomRadius - 4.0f, roomRadius + 6.0f, goldRing);
-        DrawRoomIcon(assets, room.type, position, 1.0f, WHITE);
+        // The player's own room shows the hero's helmet in a dark ring, so it is never
+        // mistaken for a room that can be picked next.
+        DrawRoomRing(position, roomRadius - 6.0f, roomRadius, inkColor);
+        DrawIcon(assets.getTexture("MapHero"), position, roomIconScale, WHITE);
         return;
     }
     if (canVisit(m_currentRoom, entity))
@@ -410,23 +411,25 @@ void Scene_Map::drawRoomInfo(const std::shared_ptr<Entity> &room) const
     DrawTextCenter(font, describeState(room), {centerX, box.y + 140.0f}, smallText, peachColor);
 }
 
+static void DrawLegendRow(const Assets &assets, const char *icon, const char *name, float y)
+{
+    DrawIcon(assets.getTexture(icon), {legendRect.x + 70.0f, y}, roomIconScale, WHITE);
+    DrawTextLeft(assets.getFont("Main"), name, {legendRect.x + 126.0f, y - 22.0f}, smallText, inkColor);
+}
+
 void Scene_Map::drawLegend() const
 {
     const Assets &assets = m_game->assets();
-    const Font &font = assets.getFont("Main");
-    DrawBox(assets.getBox("MapPaper"), legendRect, WHITE);
-    DrawTextCenter(font, "Legend", {legendRect.x + legendRect.width / 2.0f, legendRect.y + 60.0f}, bigText, inkColor);
+    DrawBox(assets.getBox("MapPaper"), legendRect, paperTint);
+    DrawTextCenter(assets.getFont("Main"), "Legend", {legendRect.x + legendRect.width / 2.0f, legendRect.y + 56.0f}, bigText, inkColor);
 
-    const RoomType types[]{RoomType::Combat, RoomType::Rest, RoomType::Boss, RoomType::Start};
-    const float rowHeight = 70.0f;
-    float y = legendRect.y + 140.0f;
-    for (RoomType type : types)
+    const float rowHeight = 76.0f;
+    float y = legendRect.y + 136.0f;
+    DrawLegendRow(assets, "MapHero", "You", y);
+    for (RoomType type : {RoomType::Combat, RoomType::Rest, RoomType::Boss, RoomType::Start})
     {
-        // The boss icon is extra large on the map; in the legend it lines up with the others.
-        float iconScale = type == RoomType::Boss ? uiScale : RoomIconScale(type);
-        DrawIcon(assets.getTexture(RoomIcon(type)), {legendRect.x + 80.0f, y}, iconScale, WHITE);
-        DrawTextLeft(font, RoomName(type), {legendRect.x + 140.0f, y - 26.0f}, bigText, inkColor);
         y += rowHeight;
+        DrawLegendRow(assets, RoomIcon(type), RoomName(type), y);
     }
 }
 
@@ -435,14 +438,14 @@ void Scene_Map::sRender()
     const Assets &assets = m_game->assets();
     const Run &run = m_game->currentRun();
 
-    ClearBackground(shadeColor);
-    DrawBox(assets.getBox("MapPaper"), paperRect, WHITE);
+    DrawRectangleGradientV(0, 0, screenWidth, screenHeight, backdropTop, backdropBottom);
+    DrawBox(assets.getBox("MapPaper"), paperRect, paperTint);
     drawPaths();
     drawRooms(visitableRoomAt(GetMousePosition()));
     drawLegend();
 
     DrawPanel(assets, healthPanel);
-    DrawIcon(assets.getTexture("Heart"), {healthPanel.x + 66.0f, healthPanel.y + 60.0f}, uiScale, WHITE);
+    DrawIcon(assets.getTexture("Heart"), {healthPanel.x + 66.0f, healthPanel.y + 60.0f}, iconScale, WHITE);
     DrawTextLeft(assets.getFont("Main"), TextFormat("%d / %d", run.hp, run.maxHp), {healthPanel.x + 110.0f, healthPanel.y + 30.0f}, bigText, textColor);
 
     std::shared_ptr<Entity> pointed = roomAt(GetMousePosition());

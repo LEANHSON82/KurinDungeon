@@ -21,30 +21,35 @@ void DrawBackground(Texture2D texture, Color tint)
     DrawIcon(texture, {screenWidth / 2.0f, screenHeight / 2.0f}, worldScale, tint);
 }
 
-static void DrawFrame(Texture2D texture, std::size_t frame, Vector2 feet, bool flip, Color tint)
+static void DrawFrame(Texture2D texture, std::size_t frame, Vector2 feet, float scale, bool flip, Color tint)
 {
     const float frameSize = spriteFrameSize;
     const float feetFromTop = 57.0f; // the row of the frame where the character stands
 
     Rectangle fromImage{static_cast<float>(frame) * frameSize, 0.0f, flip ? -frameSize : frameSize, frameSize};
-    float size = frameSize * worldScale;
-    Rectangle toScreen{feet.x - size / 2.0f, feet.y - feetFromTop * worldScale, size, size};
+    float size = frameSize * scale;
+    Rectangle toScreen{feet.x - size / 2.0f, feet.y - feetFromTop * scale, size, size};
     DrawPart(texture, fromImage, toScreen, tint);
 }
 
 void DrawSprite(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color tint)
 {
-    DrawFrame(animation.getTexture(), frame, feet, flip, tint);
+    DrawFrame(animation.getTexture(), frame, feet, worldScale, flip, tint);
+}
+
+void DrawPortrait(const Animation &animation, std::size_t frame, Vector2 feet)
+{
+    DrawFrame(animation.getTexture(), frame, feet, portraitScale, false, WHITE);
 }
 
 void DrawSpriteOutline(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color color)
 {
     Texture2D silhouette = animation.getSilhouette();
-    float step = worldScale;
-    DrawFrame(silhouette, frame, {feet.x - step, feet.y}, flip, color);
-    DrawFrame(silhouette, frame, {feet.x + step, feet.y}, flip, color);
-    DrawFrame(silhouette, frame, {feet.x, feet.y - step}, flip, color);
-    DrawFrame(silhouette, frame, {feet.x, feet.y + step}, flip, color);
+    float step = worldScale; // one art pixel
+    DrawFrame(silhouette, frame, {feet.x - step, feet.y}, worldScale, flip, color);
+    DrawFrame(silhouette, frame, {feet.x + step, feet.y}, worldScale, flip, color);
+    DrawFrame(silhouette, frame, {feet.x, feet.y - step}, worldScale, flip, color);
+    DrawFrame(silhouette, frame, {feet.x, feet.y + step}, worldScale, flip, color);
 }
 
 // Nine-slice drawing. The box art is cut into 3 x 3 pieces:

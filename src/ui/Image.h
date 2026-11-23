@@ -7,6 +7,8 @@
 void DrawIcon(Texture2D texture, Vector2 center, float scale, Color tint);
 void DrawBackground(Texture2D texture, Color tint);
 void DrawSprite(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color tint);
+// A character drawn large and alone, for screens that show just the hero.
+void DrawPortrait(const Animation &animation, std::size_t frame, Vector2 feet);
 void DrawSpriteOutline(const Animation &animation, std::size_t frame, Vector2 feet, bool flip, Color color);
 void DrawBox(const BoxImage &image, Rectangle box, Color tint);
 // Draws one rectangle of a texture into a rectangle on screen.

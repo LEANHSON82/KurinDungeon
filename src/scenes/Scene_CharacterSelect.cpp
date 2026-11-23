@@ -13,12 +13,12 @@
 
 static Rectangle Panel()
 {
-    return CenteredRect(220.0f, 720.0f, 560.0f);
+    return CenteredRect(250.0f, 760.0f, 540.0f);
 }
 
 static Rectangle ConfirmButton()
 {
-    return CenteredRect(840.0f, 336.0f, buttonHeight);
+    return CenteredRect(850.0f, 360.0f, buttonHeight);
 }
 
 // "80 HP - Strike, Defend, Heavy Strike", built from the starting deck.
@@ -77,8 +77,8 @@ void Scene_CharacterSelect::sRender()
 
     Rectangle panel = Panel();
     DrawPanel(assets, panel);
-    DrawSprite(m_heroIdle, m_heroIdle.frame(true), {screenWidth / 2.0f, panel.y + 330.0f}, false, WHITE);
-    DrawTextOutlined(font, "Knight", {screenWidth / 2.0f, panel.y + 400.0f}, titleText, goldColor);
+    DrawPortrait(m_heroIdle, m_heroIdle.frame(true), {screenWidth / 2.0f, panel.y + 320.0f});
+    DrawHeading(assets.getFont("Title"), "Knight", {screenWidth / 2.0f, panel.y + 400.0f}, headingText, goldColor);
     DrawTextCenter(font, DescribeHero().c_str(), {screenWidth / 2.0f, panel.y + 470.0f}, smallText, peachColor);
 
     DrawButton(assets, ConfirmButton(), "Confirm", ButtonStyle::Gold, isHeld(ConfirmButton()));
