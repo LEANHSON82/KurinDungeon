@@ -207,11 +207,6 @@ void Scene_Battle::sDoAction(const Action &action)
     {
         return;
     }
-    if (!isAlive(m_target))
-    {
-        m_target = nextLivingEnemy(m_target, 1);
-    }
-
     if (name == "MOUSE_MOVE")
     {
         if (std::shared_ptr<Entity> enemy = enemyAt(action.pos()))
@@ -262,9 +257,18 @@ void Scene_Battle::sDoAction(const Action &action)
     }
 }
 
+void Scene_Battle::retarget()
+{
+    if (!isAlive(m_target))
+    {
+        m_target = nextLivingEnemy(m_target, 1);
+    }
+}
+
 void Scene_Battle::update()
 {
     m_entityManager.update();
+    retarget();
     sPlayback();
     sAnimation();
     sFloatingText();

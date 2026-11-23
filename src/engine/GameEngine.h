@@ -31,6 +31,7 @@ protected:
     std::unique_ptr<SceneChange> m_nextScene;
 
     void sUserInput();
+    void sendAction(const Action &action);
     void applySceneChange();
     Rectangle viewport() const;
 

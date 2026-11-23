@@ -58,6 +58,13 @@ void GameEngine::applySceneChange()
         return;
     }
     std::unique_ptr<SceneChange> change = std::move(m_nextScene);
+    // Without a scene the change means "go back to one that is still in the map".
+    bool sceneExists = change->scene || m_sceneMap.count(change->name) > 0;
+    if (!sceneExists)
+    {
+        TraceLog(LOG_ERROR, "Cannot change to unknown scene: %s", change->name.c_str());
+        return;
+    }
     if (change->endCurrentScene)
     {
         m_sceneMap.erase(m_currentScene);
@@ -83,6 +90,18 @@ Rectangle GameEngine::viewport() const
     return {(GetScreenWidth() - width) / 2.0f, (GetScreenHeight() - height) / 2.0f, width, height};
 }
 
+// Once a scene has asked for a scene change, the rest of this frame's input is dropped.
+// Otherwise two keys pressed in the same frame would both reach the old scene and, for
+// example, add two reward cards.
+void GameEngine::sendAction(const Action &action)
+{
+    if (m_nextScene)
+    {
+        return;
+    }
+    currentScene()->doAction(action);
+}
+
 // Turns raw keyboard and mouse input into Actions for the current scene.
 void GameEngine::sUserInput()
 {
@@ -91,31 +110,31 @@ void GameEngine::sUserInput()
     {
         if (IsKeyPressed(key))
         {
-            scene->doAction(Action(name, "START"));
+            sendAction(Action(name, "START"));
         }
         if (IsKeyReleased(key))
         {
-            scene->doAction(Action(name, "END"));
+            sendAction(Action(name, "END"));
         }
     }
 
     Vector2 mouse = GetMousePosition();
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        scene->doAction(Action("LEFT_CLICK", "START", mouse));
+        sendAction(Action("LEFT_CLICK", "START", mouse));
     }
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
     {
-        scene->doAction(Action("LEFT_CLICK", "END", mouse));
+        sendAction(Action("LEFT_CLICK", "END", mouse));
     }
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
     {
-        scene->doAction(Action("RIGHT_CLICK", "START", mouse));
+        sendAction(Action("RIGHT_CLICK", "START", mouse));
     }
     Vector2 delta = GetMouseDelta();
     if (delta.x != 0.0f || delta.y != 0.0f)
     {
-        scene->doAction(Action("MOUSE_MOVE", "START", mouse));
+        sendAction(Action("MOUSE_MOVE", "START", mouse));
     }
 }
 

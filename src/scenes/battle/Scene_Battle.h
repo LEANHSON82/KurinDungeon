@@ -83,6 +83,7 @@ class Scene_Battle : public Scene
     void playSelectedCard(const std::shared_ptr<Entity> &target);
     void clickBattlefield(Vector2 point);
     std::shared_ptr<Entity> nextLivingEnemy(const std::shared_ptr<Entity> &from, int step);
+    void retarget();
     std::shared_ptr<Entity> cardAt(Vector2 point);
     std::shared_ptr<Entity> enemyAt(Vector2 point);
     void finishBattle();
