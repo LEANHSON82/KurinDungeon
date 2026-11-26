@@ -5,6 +5,8 @@ enum class EnemyId
 {
     Slime,
     Guardian,
+    Brute,
+    Axeman,
     Warden,
     Count,
 };

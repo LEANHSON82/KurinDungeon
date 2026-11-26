@@ -15,4 +15,5 @@ void DrawOrb(const Assets &assets, Vector2 center, Texture2D fill, Texture2D fra
 
 void DrawScreenShade(unsigned char alpha);
 void DrawBottomShade(float top);
+void DrawPlainBackdrop(const Assets &assets, const char *title);
 void DrawSceneBackdrop(const Assets &assets, Texture2D background, unsigned char shade, const char *title = nullptr, float titleY = headerY);

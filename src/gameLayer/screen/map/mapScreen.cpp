@@ -19,7 +19,7 @@ const float bottomY = 1004.0f;
 const float mapCenterX = 960.0f;
 
 const Rectangle paperRect{440.0f, 16.0f, 1040.0f, 1048.0f};
-const Rectangle legendRect{1530.0f, 270.0f, 330.0f, 540.0f};
+const Rectangle legendRect{1530.0f, 120.0f, 330.0f, 840.0f};
 const Rectangle healthPanel{60.0f, 40.0f, 320.0f, 200.0f};
 const Vector2 relicBarPosition{60.0f, 270.0f};
 const float roomIconScale = 4.0f;
@@ -135,8 +135,16 @@ static const char *GetRoomName(RoomType type)
         return "Start";
     case RoomType::Combat:
         return "Enemy";
+    case RoomType::Elite:
+        return "Elite";
     case RoomType::Rest:
         return "Rest";
+    case RoomType::Shop:
+        return "Shop";
+    case RoomType::Event:
+        return "Unknown";
+    case RoomType::Treasure:
+        return "Treasure";
     case RoomType::Boss:
         return "Boss";
     }
@@ -176,10 +184,17 @@ static std::string DescribeRoom(const Room &room)
     case RoomType::Start:
         return "Your journey begins";
     case RoomType::Combat:
+    case RoomType::Elite:
     case RoomType::Boss:
         return DescribeEnemies(room.enemies);
     case RoomType::Rest:
         return "Heal " + std::to_string(restHeal) + " HP";
+    case RoomType::Shop:
+        return "Buy cards and relics";
+    case RoomType::Event:
+        return "Something strange";
+    case RoomType::Treasure:
+        return "A chest with a relic";
     }
     return "";
 }
@@ -312,7 +327,7 @@ static void DrawLegend(const Assets &assets)
 
     float y = legendRect.y + 136.0f;
     DrawLegendRow(assets, assets.mapHero, "You", y);
-    for (RoomType type : {RoomType::Combat, RoomType::Rest, RoomType::Boss, RoomType::Start})
+    for (RoomType type : {RoomType::Combat, RoomType::Elite, RoomType::Event, RoomType::Shop, RoomType::Treasure, RoomType::Rest, RoomType::Boss, RoomType::Start})
     {
         y += legendRowHeight;
         DrawLegendRow(assets, GetRoomIcon(assets, type), GetRoomName(type), y);

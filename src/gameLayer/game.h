@@ -28,8 +28,13 @@ private:
     void EnterRoom(int roomId);
     void OnBattleOver(BattleResult result);
     void ApplyBattleWonRelics();
+    void GainRandomRelic();
     void TakeReward(int choiceIndex);
     void TakeRest();
+    void EnterShop();
+    void BuyShopItem(int item);
+    void ChooseEventOption(int choiceIndex);
+    void TakeTreasure();
     void FinishRoom();
 
     Assets assets;

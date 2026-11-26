@@ -123,3 +123,11 @@ void DrawSceneBackdrop(const Assets &assets, Texture2D background, unsigned char
         DrawHeading(assets.titleFont, title, {screenWidth / 2.0f, titleY}, headingText, goldColor);
     }
 }
+
+void DrawPlainBackdrop(const Assets &assets, const char *title)
+{
+    const Color top{46, 34, 60, 255};
+    const Color bottom{14, 10, 20, 255};
+    DrawRectangleGradientV(0, 0, screenWidth, screenHeight, top, bottom);
+    DrawHeading(assets.titleFont, title, {screenWidth / 2.0f, headerY}, headingText, goldColor);
+}

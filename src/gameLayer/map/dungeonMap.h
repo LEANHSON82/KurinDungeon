@@ -12,7 +12,11 @@ enum class RoomType
 {
     Start,
     Combat,
+    Elite,
     Rest,
+    Shop,
+    Event,
+    Treasure,
     Boss,
 };
 
@@ -27,6 +31,8 @@ struct Room
 
     bool IsOnGrid() const { return floor >= 0 && floor < mapFloors; }
 };
+
+bool CanHaveRoom(RoomType type, int floor);
 
 class DungeonMap
 {
@@ -52,6 +58,7 @@ private:
     void AddPath(std::vector<std::vector<int>> &grid, std::mt19937 &rng, int firstColumn);
     void AddBoss(const std::vector<std::vector<int>> &grid);
     bool HasRestParent(int roomId) const;
+    RoomType RollRoomType(std::mt19937 &rng, int roomId) const;
     void AssignRooms(std::mt19937 &rng);
 
     int FindBoss() const;
@@ -59,6 +66,7 @@ private:
     bool EdgesCross(int fromA, int toA, int fromB, int toB) const;
     bool AnyEdgesCross() const;
     bool CanReach(int fromRoom, int toRoom) const;
+    bool RoomRulesHold() const;
 
     std::vector<Room> rooms;
 };

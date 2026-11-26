@@ -12,5 +12,9 @@ enum class ScreenAction
     CardChosen,
     RewardSkipped,
     RestTaken,
+    ItemBought,
+    ShopLeft,
+    EventChoiceMade,
+    TreasureTaken,
     ReturnToMenu,
 };

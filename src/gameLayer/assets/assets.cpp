@@ -121,6 +121,8 @@ void LoadAssets(Assets &assets)
     assets.knight = LoadCharacter(assets, "knight", true);
     assets.slime = LoadCharacter(assets, "slime", false);
     assets.armoredOrc = LoadCharacter(assets, "armored_orc", true);
+    assets.eliteOrc = LoadCharacter(assets, "elite_orc", false);
+    assets.armoredAxeman = LoadCharacter(assets, "armored_axeman", false);
     assets.necromancer = LoadCharacter(assets, "necromancer", false);
 
     assets.heartIcon = LoadGameTexture(assets, "images/ui/mini_icons/Icon_03.png");
@@ -145,6 +147,10 @@ void LoadAssets(Assets &assets)
 
     assets.startRoom = LoadGameTexture(assets, "images/icons/base/276_home.png");
     assets.combatRoom = LoadGameTexture(assets, "images/icons/base/012_steel_sword.png");
+    assets.eliteRoom = LoadGameTexture(assets, "images/icons/base/138_skull_small.png");
+    assets.shopRoom = LoadGameTexture(assets, "images/icons/base/094_gold_pouch.png");
+    assets.eventRoom = LoadGameTexture(assets, "images/icons/base/232_question_mark.png");
+    assets.treasureRoom = LoadGameTexture(assets, "images/icons/base/107_chest_big.png");
     assets.restRoom = LoadGameTexture(assets, "images/icons/base/141_fire.png");
     assets.bossRoom = LoadGameTexture(assets, "images/icons/base/137_skull_big.png");
     assets.mapHero = LoadGameTexture(assets, "images/icons/base/060_steel_helmet.png");
@@ -204,6 +210,10 @@ const CharacterSprites &GetEnemySprites(const Assets &assets, EnemyId id)
         return assets.slime;
     case EnemyId::Guardian:
         return assets.armoredOrc;
+    case EnemyId::Brute:
+        return assets.eliteOrc;
+    case EnemyId::Axeman:
+        return assets.armoredAxeman;
     case EnemyId::Warden:
         return assets.necromancer;
     case EnemyId::Count:
@@ -259,8 +269,16 @@ Texture2D GetRoomIcon(const Assets &assets, RoomType type)
         return assets.startRoom;
     case RoomType::Combat:
         return assets.combatRoom;
+    case RoomType::Elite:
+        return assets.eliteRoom;
     case RoomType::Rest:
         return assets.restRoom;
+    case RoomType::Shop:
+        return assets.shopRoom;
+    case RoomType::Event:
+        return assets.eventRoom;
+    case RoomType::Treasure:
+        return assets.treasureRoom;
     case RoomType::Boss:
         return assets.bossRoom;
     }

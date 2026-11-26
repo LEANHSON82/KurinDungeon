@@ -104,3 +104,18 @@ std::vector<CardId> RollRewards(std::mt19937 &rng, int count)
 
     return choices;
 }
+
+int GetCardPrice(CardId id)
+{
+    switch (GetCard(id).rarity)
+    {
+    case CardRarity::Starter:
+    case CardRarity::Common:
+        return 50;
+    case CardRarity::Uncommon:
+        return 75;
+    case CardRarity::Rare:
+        return 140;
+    }
+    return 50;
+}

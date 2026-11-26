@@ -56,6 +56,8 @@ struct Assets
     CharacterSprites knight;
     CharacterSprites slime;
     CharacterSprites armoredOrc;
+    CharacterSprites eliteOrc;
+    CharacterSprites armoredAxeman;
     CharacterSprites necromancer;
 
     Texture2D heartIcon{};
@@ -71,6 +73,10 @@ struct Assets
 
     Texture2D startRoom{};
     Texture2D combatRoom{};
+    Texture2D eliteRoom{};
+    Texture2D shopRoom{};
+    Texture2D eventRoom{};
+    Texture2D treasureRoom{};
     Texture2D restRoom{};
     Texture2D bossRoom{};
     Texture2D mapHero{};

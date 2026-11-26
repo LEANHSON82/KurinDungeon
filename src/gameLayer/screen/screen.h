@@ -9,6 +9,9 @@ enum class GameScreen
     Battle,
     Reward,
     Rest,
+    Shop,
+    Event,
+    Treasure,
     Victory,
     GameOver,
 };

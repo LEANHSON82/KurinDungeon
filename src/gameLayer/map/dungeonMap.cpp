@@ -4,6 +4,7 @@
 #include <raylib.h>
 
 const int mapAttempts = 16;
+const int eliteFirstFloor = 3;
 
 DungeonMap DungeonMap::Generate(std::uint32_t seed)
 {
@@ -184,9 +185,82 @@ static std::vector<EnemyId> PickEnemyGroup(std::mt19937 &rng, int floor)
     return {EnemyId::Guardian};
 }
 
+static std::vector<EnemyId> PickEliteGroup(std::mt19937 &rng)
+{
+    std::uniform_int_distribution<int> pickGroup(0, 1);
+    if (pickGroup(rng) == 0)
+    {
+        return {EnemyId::Brute};
+    }
+    return {EnemyId::Axeman};
+}
+
+bool CanHaveRoom(RoomType type, int floor)
+{
+    switch (type)
+    {
+    case RoomType::Combat:
+        return floor < mapFloors - 1;
+    case RoomType::Event:
+        return floor >= 1 && floor < mapFloors - 1;
+    case RoomType::Shop:
+    case RoomType::Treasure:
+        return floor >= 2 && floor < mapFloors - 1;
+    case RoomType::Elite:
+        return floor >= eliteFirstFloor && floor < mapFloors - 1;
+    case RoomType::Rest:
+        return floor == mapFloors - 1 || (floor >= 2 && floor < mapFloors - 2);
+    case RoomType::Start:
+        return floor == -1;
+    case RoomType::Boss:
+        return floor == mapFloors;
+    }
+    return false;
+}
+
+RoomType DungeonMap::RollRoomType(std::mt19937 &rng, int roomId) const
+{
+    const Room &room = rooms[roomId];
+    if (room.floor == mapFloors - 1)
+    {
+        return RoomType::Rest;
+    }
+    if (room.floor == 0)
+    {
+        return RoomType::Combat;
+    }
+
+    const RoomType types[] = {RoomType::Combat, RoomType::Event, RoomType::Shop, RoomType::Elite, RoomType::Treasure, RoomType::Rest};
+    const int weights[] = {45, 20, 10, 13, 6, 12};
+    std::vector<RoomType> allowed;
+    std::vector<int> allowedWeights;
+    int total = 0;
+    for (int i = 0; i < 6; i++)
+    {
+        bool restAfterRest = types[i] == RoomType::Rest && HasRestParent(roomId);
+        if (CanHaveRoom(types[i], room.floor) && !restAfterRest)
+        {
+            allowed.push_back(types[i]);
+            allowedWeights.push_back(weights[i]);
+            total += weights[i];
+        }
+    }
+
+    std::uniform_int_distribution<int> roll(1, total);
+    int value = roll(rng);
+    for (int i = 0; i < static_cast<int>(allowed.size()); i++)
+    {
+        value -= allowedWeights[i];
+        if (value <= 0)
+        {
+            return allowed[i];
+        }
+    }
+    return RoomType::Combat;
+}
+
 void DungeonMap::AssignRooms(std::mt19937 &rng)
 {
-    std::uniform_int_distribution<int> pickType(0, 3);
     for (int floor = 0; floor < mapFloors; floor++)
     {
         for (int id = 0; id < GetRoomCount(); id++)
@@ -197,13 +271,14 @@ void DungeonMap::AssignRooms(std::mt19937 &rng)
                 continue;
             }
 
-            bool lastFloor = floor == mapFloors - 1;
-            bool canRest = floor >= 2 && floor < mapFloors - 2 && !HasRestParent(id);
-            bool rolledRest = canRest && pickType(rng) == 0;
-            room.type = lastFloor || rolledRest ? RoomType::Rest : RoomType::Combat;
+            room.type = RollRoomType(rng, id);
             if (room.type == RoomType::Combat)
             {
                 room.enemies = PickEnemyGroup(rng, floor);
+            }
+            else if (room.type == RoomType::Elite)
+            {
+                room.enemies = PickEliteGroup(rng);
             }
         }
     }
@@ -302,6 +377,28 @@ bool DungeonMap::CanReach(int fromRoom, int toRoom) const
     return visited[toRoom];
 }
 
+bool DungeonMap::RoomRulesHold() const
+{
+    for (int id = 0; id < GetRoomCount(); id++)
+    {
+        const Room &room = rooms[id];
+        if (!CanHaveRoom(room.type, room.floor))
+        {
+            return false;
+        }
+        if (room.type == RoomType::Rest && room.floor < mapFloors - 1 && HasRestParent(id))
+        {
+            return false;
+        }
+        bool isFight = room.type == RoomType::Combat || room.type == RoomType::Elite || room.type == RoomType::Boss;
+        if (isFight == room.enemies.empty())
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool DungeonMap::Validate() const
 {
     int boss = FindBoss();
@@ -309,5 +406,5 @@ bool DungeonMap::Validate() const
     {
         return false;
     }
-    return EveryRoomIsLinked(boss) && !AnyEdgesCross() && CanReach(GetStartRoom(), boss);
+    return EveryRoomIsLinked(boss) && !AnyEdgesCross() && CanReach(GetStartRoom(), boss) && RoomRulesHold();
 }
