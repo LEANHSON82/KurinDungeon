@@ -5,6 +5,7 @@
 #include "combat/battle.h"
 #include "run/runState.h"
 #include "screen/battle/battleScreen.h"
+#include "screen/characterSelect/characterSelectScreen.h"
 #include "screen/logo/logoScreen.h"
 #include "screen/screen.h"
 
@@ -22,7 +23,8 @@ public:
 
 private:
     void ChangeScreen(GameScreen nextScreen);
-    void StartRun();
+    void StartRun(CharacterId character);
+    void ContinueRun();
     void StartBattle(const std::vector<EnemyId> &enemyIds);
     void UpdateBattle(float deltaTime);
     void EnterRoom(int roomId);
@@ -41,7 +43,9 @@ private:
 
     GameScreen screen = GameScreen::Logo;
     bool quit = false;
+    bool hasSave = false;
     LogoScreenState logo;
+    CharacterSelectState characterSelect;
     RunState run;
     std::unique_ptr<Battle> battle;
     BattleScreenState battleView;

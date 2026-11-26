@@ -2,6 +2,6 @@
 #include "assets/assets.h"
 #include "screen/screenAction.h"
 
-ScreenAction UpdateMenuScreen();
+ScreenAction UpdateMenuScreen(bool hasSave);
 
-void DrawMenuScreen(const Assets &assets);
+void DrawMenuScreen(bool hasSave, const Assets &assets);

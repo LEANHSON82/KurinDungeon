@@ -2,6 +2,7 @@
 #include <raylib.h>
 #include <vector>
 #include "cards/card.h"
+#include "characters/character.h"
 #include "combat/enemies/enemy.h"
 #include "combat/status.h"
 #include "map/dungeonMap.h"
@@ -54,6 +55,7 @@ struct Assets
     Texture2D graveyard{};
 
     CharacterSprites knight;
+    CharacterSprites swordsman;
     CharacterSprites slime;
     CharacterSprites armoredOrc;
     CharacterSprites eliteOrc;
@@ -112,6 +114,7 @@ struct Assets
 void LoadAssets(Assets &assets);
 void UnloadAssets(Assets &assets);
 
+const CharacterSprites &GetHeroSprites(const Assets &assets, CharacterId id);
 const CharacterSprites &GetEnemySprites(const Assets &assets, EnemyId id);
 const SpriteSheet &GetAnimation(const CharacterSprites &sprites, AnimationType type);
 Texture2D GetStatusIcon(const Assets &assets, StatusType type);

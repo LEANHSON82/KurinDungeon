@@ -16,7 +16,7 @@ static ActorView &GetActor(BattleScreenState &state, int actor)
 
 const CharacterSprites &GetActorSprites(const Battle &battle, const Assets &assets, int actor)
 {
-    return actor == playerActor ? assets.knight : GetEnemySprites(assets, battle.GetEnemies()[actor].id);
+    return actor == playerActor ? GetHeroSprites(assets, battle.GetPlayer().character) : GetEnemySprites(assets, battle.GetEnemies()[actor].id);
 }
 
 static void StartAnimation(ActorView &actor, AnimationType type)

@@ -31,7 +31,7 @@ void DrawRestScreen(const PlayerState &player, const Assets &assets)
     DrawSceneBackdrop(assets, assets.graveyard, 120, "Rest");
 
     DrawBottomShade(heroFeet.y);
-    const SpriteSheet &idle = assets.knight.idle;
+    const SpriteSheet &idle = GetHeroSprites(assets, player.character).idle;
     DrawPortrait(idle, GetLoopFrame(idle, static_cast<float>(GetTime())), heroFeet);
     DrawIcon(assets.restRoom, fireCenter, fireScale, WHITE);
 

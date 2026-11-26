@@ -119,6 +119,7 @@ void LoadAssets(Assets &assets)
     assets.graveyard = LoadGameTexture(assets, "images/backgrounds/graveyard.png");
 
     assets.knight = LoadCharacter(assets, "knight", true);
+    assets.swordsman = LoadCharacter(assets, "swordsman", false);
     assets.slime = LoadCharacter(assets, "slime", false);
     assets.armoredOrc = LoadCharacter(assets, "armored_orc", true);
     assets.eliteOrc = LoadCharacter(assets, "elite_orc", false);
@@ -200,6 +201,20 @@ void UnloadAssets(Assets &assets)
     UnloadOptionalSound(assets.block);
     UnloadOptionalSound(assets.victory);
     UnloadOptionalSound(assets.defeat);
+}
+
+const CharacterSprites &GetHeroSprites(const Assets &assets, CharacterId id)
+{
+    switch (id)
+    {
+    case CharacterId::Knight:
+        return assets.knight;
+    case CharacterId::Swordsman:
+        return assets.swordsman;
+    case CharacterId::Count:
+        break;
+    }
+    return assets.knight;
 }
 
 const CharacterSprites &GetEnemySprites(const Assets &assets, EnemyId id)

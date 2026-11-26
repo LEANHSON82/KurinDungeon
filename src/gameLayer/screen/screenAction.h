@@ -5,6 +5,7 @@ enum class ScreenAction
     None,
     LogoFinished,
     StartPressed,
+    ContinuePressed,
     QuitPressed,
     CharacterConfirmed,
     RoomChosen,

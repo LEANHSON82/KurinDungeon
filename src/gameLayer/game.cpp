@@ -3,8 +3,10 @@
 #include <raylib.h>
 #include "game.h"
 #include "cards/cardDatabase.h"
+#include "characters/characterDatabase.h"
 #include "events/eventDatabase.h"
 #include "relics/relicDatabase.h"
+#include "save/saveGame.h"
 #include "screen/characterSelect/characterSelectScreen.h"
 #include "screen/end/endScreen.h"
 #include "screen/event/eventScreen.h"
@@ -32,10 +34,18 @@ void Game::ChangeScreen(GameScreen nextScreen)
     {
         logo = LogoScreenState{};
     }
+    if (nextScreen == GameScreen::Menu)
+    {
+        hasSave = HasSave();
+    }
+    if (nextScreen == GameScreen::CharacterSelect)
+    {
+        characterSelect = CharacterSelectState{};
+    }
     screen = nextScreen;
 }
 
-void Game::StartRun()
+void Game::StartRun(CharacterId character)
 {
     battle.reset();
     run = RunState{};
@@ -44,10 +54,27 @@ void Game::StartRun()
     run.rng.seed(run.seed);
     TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
 
-    run.player.masterDeck = GetStartingDeck();
-    run.relics = {RelicId::FieldBandage};
+    const CharacterDefinition &definition = GetCharacter(character);
+    run.player.character = character;
+    run.player.maxHp = definition.maxHp;
+    run.player.hp = definition.maxHp;
+    run.player.masterDeck = definition.startingDeck;
+    run.relics = {definition.starterRelic};
     run.map = DungeonMap::Generate(run.seed);
     run.currentRoom = run.map.GetStartRoom();
+    SaveRun(run);
+}
+
+void Game::ContinueRun()
+{
+    battle.reset();
+    if (LoadRun(run))
+    {
+        ChangeScreen(GameScreen::Map);
+        return;
+    }
+    DeleteSave();
+    hasSave = false;
 }
 
 void Game::StartBattle(const std::vector<EnemyId> &enemyIds)
@@ -115,6 +142,7 @@ void Game::OnBattleOver(BattleResult result)
 
     if (result == BattleResult::Lost)
     {
+        DeleteSave();
         ChangeScreen(GameScreen::GameOver);
         return;
     }
@@ -122,6 +150,7 @@ void Game::OnBattleOver(BattleResult result)
     if (run.map.GetRoom(run.currentRoom).type == RoomType::Boss)
     {
         run.map.MarkCleared(run.currentRoom);
+        DeleteSave();
         ChangeScreen(GameScreen::Victory);
         return;
     }
@@ -269,6 +298,7 @@ void Game::TakeTreasure()
 void Game::FinishRoom()
 {
     run.map.MarkCleared(run.currentRoom);
+    SaveRun(run);
     ChangeScreen(GameScreen::Map);
 }
 
@@ -284,10 +314,14 @@ void Game::Update(float deltaTime)
         break;
     case GameScreen::Menu:
     {
-        ScreenAction action = UpdateMenuScreen();
+        ScreenAction action = UpdateMenuScreen(hasSave);
         if (action == ScreenAction::StartPressed)
         {
             ChangeScreen(GameScreen::CharacterSelect);
+        }
+        else if (action == ScreenAction::ContinuePressed)
+        {
+            ContinueRun();
         }
         else if (action == ScreenAction::QuitPressed)
         {
@@ -296,9 +330,9 @@ void Game::Update(float deltaTime)
         break;
     }
     case GameScreen::CharacterSelect:
-        if (UpdateCharacterSelectScreen() == ScreenAction::CharacterConfirmed)
+        if (UpdateCharacterSelectScreen(characterSelect) == ScreenAction::CharacterConfirmed)
         {
-            StartRun();
+            StartRun(static_cast<CharacterId>(characterSelect.selected));
             ChangeScreen(GameScreen::Map);
         }
         break;
@@ -382,10 +416,10 @@ void Game::Draw() const
         DrawLogoScreen(logo, assets);
         break;
     case GameScreen::Menu:
-        DrawMenuScreen(assets);
+        DrawMenuScreen(hasSave, assets);
         break;
     case GameScreen::CharacterSelect:
-        DrawCharacterSelectScreen(assets);
+        DrawCharacterSelectScreen(characterSelect, assets);
         break;
     case GameScreen::Map:
         DrawMapScreen(run, assets);

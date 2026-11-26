@@ -34,25 +34,6 @@ const Card &GetCard(CardId id)
     return cards[static_cast<int>(id)];
 }
 
-const std::vector<CardId> &GetStartingDeck()
-{
-    static const std::vector<CardId> deck{
-        CardId::Strike,
-        CardId::Strike,
-        CardId::Strike,
-        CardId::Strike,
-        CardId::Strike,
-
-        CardId::Defend,
-        CardId::Defend,
-        CardId::Defend,
-        CardId::Defend,
-
-        CardId::HeavyStrike,
-    };
-    return deck;
-}
-
 static CardRarity RollRarity(std::mt19937 &rng)
 {
     std::uniform_int_distribution<int> roll(1, commonWeight + uncommonWeight + rareWeight);
