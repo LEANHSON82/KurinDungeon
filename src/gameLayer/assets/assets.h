@@ -5,6 +5,7 @@
 #include "combat/enemies/enemy.h"
 #include "combat/status.h"
 #include "map/dungeonMap.h"
+#include "relics/relic.h"
 
 const int mainFontSize = 20;
 const int titleFontSize = 13;
@@ -65,6 +66,8 @@ struct Assets
     Texture2D vulnerableIcon{};
     Texture2D digits[10]{};
     Texture2D cardArt[cardCount]{};
+    Texture2D relicArt[relicCount]{};
+    Texture2D goldIcon{};
 
     Texture2D startRoom{};
     Texture2D combatRoom{};

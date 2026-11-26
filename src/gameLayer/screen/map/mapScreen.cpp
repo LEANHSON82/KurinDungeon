@@ -6,6 +6,7 @@
 #include "mapScreen.h"
 #include "gameConfig.h"
 #include "combat/enemies/enemyDatabase.h"
+#include "screen/relicView.h"
 #include "screen/ui/image.h"
 #include "screen/ui/style.h"
 #include "screen/ui/text.h"
@@ -19,7 +20,8 @@ const float mapCenterX = 960.0f;
 
 const Rectangle paperRect{440.0f, 16.0f, 1040.0f, 1048.0f};
 const Rectangle legendRect{1530.0f, 270.0f, 330.0f, 540.0f};
-const Rectangle healthPanel{60.0f, 40.0f, 320.0f, 120.0f};
+const Rectangle healthPanel{60.0f, 40.0f, 320.0f, 200.0f};
+const Vector2 relicBarPosition{60.0f, 270.0f};
 const float roomIconScale = 4.0f;
 const float bossIconScale = 6.0f;
 const float legendRowHeight = 76.0f;
@@ -317,8 +319,20 @@ static void DrawLegend(const Assets &assets)
     }
 }
 
-void DrawMapScreen(const DungeonMap &map, int currentRoom, const PlayerState &player, const Assets &assets)
+static void DrawRunPanel(const RunState &run, const Assets &assets)
 {
+    DrawPanel(assets, healthPanel);
+    DrawIcon(assets.heartIcon, {healthPanel.x + 66.0f, healthPanel.y + 60.0f}, iconScale, WHITE);
+    DrawTextLeft(assets.font, TextFormat("%d / %d", run.player.hp, run.player.maxHp), {healthPanel.x + 110.0f, healthPanel.y + 30.0f}, bigText, textColor);
+    DrawIcon(assets.goldIcon, {healthPanel.x + 66.0f, healthPanel.y + 140.0f}, goldIconScale, WHITE);
+    DrawTextLeft(assets.font, TextFormat("%d", run.gold), {healthPanel.x + 110.0f, healthPanel.y + 110.0f}, bigText, goldColor);
+    DrawRelicBar(assets, run.relics, relicBarPosition);
+}
+
+void DrawMapScreen(const RunState &run, const Assets &assets)
+{
+    const DungeonMap &map = run.map;
+    int currentRoom = run.currentRoom;
     std::vector<Vector2> positions = GetRoomPositions(map);
     int pointed = GetRoomAtMouse(map, positions);
     int hovered = map.CanVisit(currentRoom, pointed) ? pointed : -1;
@@ -332,10 +346,7 @@ void DrawMapScreen(const DungeonMap &map, int currentRoom, const PlayerState &pl
         DrawRoom(map, currentRoom, id, positions[id], id == hovered, wave, assets);
     }
     DrawLegend(assets);
-
-    DrawPanel(assets, healthPanel);
-    DrawIcon(assets.heartIcon, {healthPanel.x + 66.0f, healthPanel.y + 60.0f}, iconScale, WHITE);
-    DrawTextLeft(assets.font, TextFormat("%d / %d", player.hp, player.maxHp), {healthPanel.x + 110.0f, healthPanel.y + 30.0f}, bigText, textColor);
+    DrawRunPanel(run, assets);
 
     if (pointed != -1)
     {

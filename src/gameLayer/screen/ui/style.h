@@ -5,6 +5,7 @@ const float worldScale = 6.0f;
 const float iconScale = 6.0f;
 const float uiScale = 4.0f;
 const float detailScale = 3.0f;
+const float goldIconScale = 3.0f;
 const float portraitScale = 12.0f;
 
 const float smallText = 40.0f;

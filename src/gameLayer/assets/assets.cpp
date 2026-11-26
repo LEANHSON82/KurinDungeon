@@ -1,5 +1,6 @@
 #include "assets.h"
 #include "cards/cardDatabase.h"
+#include "relics/relicDatabase.h"
 
 static const char *ResourcePath(const char *file)
 {
@@ -136,6 +137,11 @@ void LoadAssets(Assets &assets)
     {
         assets.cardArt[i] = LoadGameTexture(assets, GetCard(static_cast<CardId>(i)).art);
     }
+    for (int i = 0; i < relicCount; i++)
+    {
+        assets.relicArt[i] = LoadGameTexture(assets, GetRelic(static_cast<RelicId>(i)).art);
+    }
+    assets.goldIcon = LoadGameTexture(assets, "images/icons/base/271_coin_gold.png");
 
     assets.startRoom = LoadGameTexture(assets, "images/icons/base/276_home.png");
     assets.combatRoom = LoadGameTexture(assets, "images/icons/base/012_steel_sword.png");

@@ -4,9 +4,10 @@
 #include "combat/damage.h"
 #include "combat/enemies/enemyAi.h"
 #include "combat/enemies/enemyDatabase.h"
+#include "relics/relicDatabase.h"
 
-Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed)
-    : player(playerState)
+Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, const std::vector<RelicId> &relicIds, std::uint32_t seed)
+    : player(playerState), relics(relicIds)
 {
     for (EnemyId id : enemyIds)
     {
@@ -16,6 +17,7 @@ Battle::Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, s
     deck.Init(player.masterDeck, seed);
     ChooseEnemyIntents();
     StartPlayerTurn();
+    TriggerRelics(RelicTrigger::BattleStart);
     CheckResult();
 }
 
@@ -24,6 +26,28 @@ void Battle::StartPlayerTurn()
     energy = startingEnergy;
     playerBlock = 0;
     deck.DrawCards(handSize);
+    TriggerRelics(RelicTrigger::TurnStart);
+}
+
+void Battle::TriggerRelics(RelicTrigger trigger)
+{
+    for (RelicId id : relics)
+    {
+        const Relic &relic = GetRelic(id);
+        if (relic.trigger != trigger)
+        {
+            continue;
+        }
+
+        ApplyEffectToPlayer(relic.effect, relic.target);
+        if (relic.target == Target::AllEnemies)
+        {
+            for (int i = 0; i < static_cast<int>(enemies.size()); i++)
+            {
+                ApplyEffectToEnemy(relic.effect, i);
+            }
+        }
+    }
 }
 
 bool Battle::IsEnemyAlive(int index) const
@@ -123,6 +147,9 @@ void Battle::ApplyEffectToPlayer(const Effect &effect, Target target)
             ApplyStatus(playerActor, playerActor, effect.status, effect.value);
         }
         break;
+    case EffectType::Heal:
+    case EffectType::GainGold:
+        break;
     }
 }
 
@@ -169,6 +196,10 @@ bool Battle::PlayCard(int handIndex, int targetIndex)
         }
     }
 
+    if (card.kind == CardKind::Attack && result == BattleResult::InProgress)
+    {
+        TriggerRelics(RelicTrigger::AttackPlayed);
+    }
     deck.RemovePlayedCard(handIndex, card.exhaust || card.kind == CardKind::Power);
     return true;
 }

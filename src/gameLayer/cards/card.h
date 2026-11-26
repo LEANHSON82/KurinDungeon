@@ -36,6 +36,14 @@ enum class CardKind
     Power,
 };
 
+enum class CardRarity
+{
+    Starter,
+    Common,
+    Uncommon,
+    Rare,
+};
+
 enum class Target
 {
     Self,
@@ -51,6 +59,8 @@ enum class EffectType
     GainEnergy,
     LoseHp,
     ApplyStatus,
+    Heal,
+    GainGold,
 };
 
 struct Effect
@@ -65,14 +75,15 @@ struct Card
     const char *name = "";
     const char *art = "";
     CardKind kind = CardKind::Attack;
+    CardRarity rarity = CardRarity::Common;
     int cost = 0;
     Target target = Target::Self;
     std::vector<Effect> effects;
     bool exhaust = false;
-    bool rewardable = true;
 };
 
 std::string DescribeEffect(const Effect &effect, Target target, const Statuses &source, const Statuses &victim);
 std::string DescribeEffects(const Card &card, const Statuses &source, const Statuses &victim);
 std::string DescribeEffects(const Card &card);
 const char *GetKindName(CardKind kind);
+const char *GetRarityName(CardRarity rarity);

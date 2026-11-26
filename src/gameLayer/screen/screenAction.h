@@ -10,6 +10,7 @@ enum class ScreenAction
     RoomChosen,
     LeaveBattle,
     CardChosen,
+    RewardSkipped,
     RestTaken,
     ReturnToMenu,
 };

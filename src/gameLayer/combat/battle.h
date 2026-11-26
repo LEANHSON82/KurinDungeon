@@ -4,6 +4,7 @@
 #include "cards/deck.h"
 #include "combat/battleEvent.h"
 #include "combat/enemies/enemy.h"
+#include "relics/relic.h"
 #include "run/player.h"
 
 enum class BattleResult
@@ -19,7 +20,7 @@ public:
     static constexpr int startingEnergy = 3;
     static constexpr int handSize = 5;
 
-    Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, std::uint32_t seed);
+    Battle(PlayerState &playerState, const std::vector<EnemyId> &enemyIds, const std::vector<RelicId> &relicIds, std::uint32_t seed);
 
     bool CanPlayCard(int handIndex, int targetIndex) const;
     bool PlayCard(int handIndex, int targetIndex);
@@ -30,6 +31,7 @@ public:
 
     const PlayerState &GetPlayer() const { return player; }
     const std::vector<Enemy> &GetEnemies() const { return enemies; }
+    const std::vector<RelicId> &GetRelics() const { return relics; }
     bool IsEnemyAlive(int index) const;
     const Deck &GetDeck() const { return deck; }
     int GetEnergy() const { return energy; }
@@ -42,6 +44,7 @@ public:
 private:
     void StartPlayerTurn();
     void ChooseEnemyIntents();
+    void TriggerRelics(RelicTrigger trigger);
     void ExecuteEnemyTurn();
     void PerformIntent(int enemyIndex);
     void TickStatuses(Statuses &statuses, const Statuses &hadAtStart);
@@ -62,6 +65,7 @@ private:
     Statuses playerStatus;
 
     std::vector<Enemy> enemies;
+    std::vector<RelicId> relics;
     Deck deck;
     int energy = 0;
     int playerBlock = 0;

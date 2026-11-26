@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include "game.h"
 #include "cards/cardDatabase.h"
+#include "relics/relicDatabase.h"
 #include "screen/characterSelect/characterSelectScreen.h"
 #include "screen/end/endScreen.h"
 #include "screen/map/mapScreen.h"
@@ -40,13 +41,14 @@ void Game::StartRun()
     TraceLog(LOG_INFO, "Run seed: %u", static_cast<unsigned>(run.seed));
 
     run.player.masterDeck = GetStartingDeck();
+    run.relics = {RelicId::FieldBandage};
     run.map = DungeonMap::Generate(run.seed);
     run.currentRoom = run.map.GetStartRoom();
 }
 
 void Game::StartBattle(const std::vector<EnemyId> &enemyIds)
 {
-    battle = std::make_unique<Battle>(run.player, enemyIds, static_cast<std::uint32_t>(run.rng()));
+    battle = std::make_unique<Battle>(run.player, enemyIds, run.relics, static_cast<std::uint32_t>(run.rng()));
     battleView = BattleScreenState{};
     battleView.enemies.resize(enemyIds.size());
 }
@@ -108,8 +110,33 @@ void Game::OnBattleOver(BattleResult result)
         return;
     }
 
+    ApplyBattleWonRelics();
+    std::uniform_int_distribution<int> rollGold(minCombatGold, maxCombatGold);
+    run.rewardGold = rollGold(run.rng);
+    run.gold += run.rewardGold;
     run.rewardChoices = RollRewards(run.rng, rewardChoiceCount);
     ChangeScreen(GameScreen::Reward);
+}
+
+void Game::ApplyBattleWonRelics()
+{
+    for (RelicId id : run.relics)
+    {
+        const Relic &relic = GetRelic(id);
+        if (relic.trigger != RelicTrigger::BattleWon)
+        {
+            continue;
+        }
+
+        if (relic.effect.type == EffectType::Heal)
+        {
+            run.player.hp = std::min(run.player.hp + relic.effect.value, run.player.maxHp);
+        }
+        else if (relic.effect.type == EffectType::GainGold)
+        {
+            run.gold += relic.effect.value;
+        }
+    }
 }
 
 void Game::TakeReward(int choiceIndex)
@@ -181,9 +208,15 @@ void Game::Update(float deltaTime)
     case GameScreen::Reward:
     {
         int chosenIndex = -1;
-        if (UpdateRewardScreen(run.rewardChoices, chosenIndex) == ScreenAction::CardChosen)
+        ScreenAction action = UpdateRewardScreen(run.rewardChoices, chosenIndex);
+        if (action == ScreenAction::CardChosen)
         {
             TakeReward(chosenIndex);
+        }
+        else if (action == ScreenAction::RewardSkipped)
+        {
+            run.rewardChoices.clear();
+            FinishRoom();
         }
         break;
     }
@@ -217,7 +250,7 @@ void Game::Draw() const
         DrawCharacterSelectScreen(assets);
         break;
     case GameScreen::Map:
-        DrawMapScreen(run.map, run.currentRoom, run.player, assets);
+        DrawMapScreen(run, assets);
         break;
     case GameScreen::Battle:
         if (battle)
@@ -226,7 +259,7 @@ void Game::Draw() const
         }
         break;
     case GameScreen::Reward:
-        DrawRewardScreen(run.rewardChoices, assets);
+        DrawRewardScreen(run.rewardChoices, run.rewardGold, assets);
         break;
     case GameScreen::Rest:
         DrawRestScreen(run.player, assets);

@@ -26,6 +26,10 @@ std::string DescribeEffect(const Effect &effect, Target target, const Statuses &
         }
         return name + " " + value + toAll;
     }
+    case EffectType::Heal:
+        return "Heal " + value + " HP";
+    case EffectType::GainGold:
+        return "+" + value + " Gold";
     }
     return "";
 }
@@ -63,6 +67,22 @@ const char *GetKindName(CardKind kind)
         return "Skill";
     case CardKind::Power:
         return "Power";
+    }
+    return "";
+}
+
+const char *GetRarityName(CardRarity rarity)
+{
+    switch (rarity)
+    {
+    case CardRarity::Starter:
+        return "Starter";
+    case CardRarity::Common:
+        return "Common";
+    case CardRarity::Uncommon:
+        return "Uncommon";
+    case CardRarity::Rare:
+        return "Rare";
     }
     return "";
 }

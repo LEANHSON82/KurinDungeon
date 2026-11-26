@@ -6,4 +6,4 @@
 
 ScreenAction UpdateRewardScreen(const std::vector<CardId> &choices, int &chosenIndex);
 
-void DrawRewardScreen(const std::vector<CardId> &choices, const Assets &assets);
+void DrawRewardScreen(const std::vector<CardId> &choices, int gold, const Assets &assets);

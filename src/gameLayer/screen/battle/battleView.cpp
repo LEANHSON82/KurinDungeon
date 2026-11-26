@@ -7,6 +7,7 @@
 #include "combat/enemies/enemyDatabase.h"
 #include "gameConfig.h"
 #include "screen/cardView.h"
+#include "screen/relicView.h"
 #include "screen/ui/image.h"
 #include "screen/ui/style.h"
 #include "screen/ui/text.h"
@@ -35,6 +36,7 @@ const float turnLabelY = 54.0f;
 const float resultY = 400.0f;
 const int hudFadeHeight = 90;
 const int hudRuleHeight = 4;
+const Vector2 relicBarPosition{30.0f, 30.0f};
 const Color hudBarColor{18, 12, 26, 240};
 const Color hudRuleColor{240, 181, 65, 255};
 
@@ -344,4 +346,5 @@ void DrawBattleScreen(const BattleScreenState &state, const Battle &battle, cons
     DrawHud(state, battle, assets);
     DrawButton(assets, GetEndTurnButton(), "End Turn", true);
     DrawHint(state, battle, assets);
+    DrawRelicBar(assets, battle.GetRelics(), relicBarPosition);
 }

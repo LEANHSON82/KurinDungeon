@@ -27,6 +27,7 @@ private:
     void UpdateBattle(float deltaTime);
     void EnterRoom(int roomId);
     void OnBattleOver(BattleResult result);
+    void ApplyBattleWonRelics();
     void TakeReward(int choiceIndex);
     void TakeRest();
     void FinishRoom();
